@@ -16,6 +16,6 @@ try{for(const [name,url,extra]of samples){await new Promise(resolve=>{
  const p=spawn(PYTHON,[...downloadArgs(guard.url),'--skip-download','-J',...extra,'--',url],{windowsHide:true,stdio:['ignore','pipe','pipe']});
  const timer=setTimeout(()=>p.kill('SIGKILL'),45000);
  p.stdout.on('data',b=>{output=(output+b).slice(-2500000);});p.stderr.on('data',b=>{error=(error+b).slice(-1200);});
- p.on('error',e=>{error=e.message;});p.on('close',code=>{clearTimeout(timer);let data={};try{data=JSON.parse(output);}catch{}
+ p.on('error',e=>{error=e.message;});p.on('close',code=>{clearTimeout(timer);let data={};try{data=JSON.parse(output)||{};}catch{}
  console.log('CONVERTY_PROBE',JSON.stringify({name,code,seconds:(Date.now()-started)/1000,title:data.title?.slice(0,90),formats:data.formats?.length,audio:data.acodec,error:error.replace(/https?:\/\/\S+/g,'[source URL]')}));resolve();});
  });}}finally{guard.close();console.log('CONVERTY_PROBE complete');}

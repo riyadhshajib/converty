@@ -98,5 +98,8 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
  finally{if(claimed)active--;if(dir)await rm(dir,{recursive:true,force:true,maxRetries:3}).catch(()=>{});}
 });
 server.listen(Number(process.env.PORT||5174),process.env.HOST||'127.0.0.1',()=>console.log('Converty API ready'));
-if(process.env.CONVERTY_DIAGNOSTICS==='1')import('./research-probe.mjs').catch(e=>console.error('Diagnostic stopped:',e.message));
+if(process.env.CONVERTY_DIAGNOSTICS==='1'){
+ const diagnostic=spawn(process.execPath,['research-probe.mjs'],{windowsHide:true,stdio:['ignore','inherit','inherit']});
+ diagnostic.on('error',e=>console.error('Diagnostic stopped:',e.message));
+}
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{server.close();guard.close();setTimeout(()=>process.exit(0),1000).unref();});
