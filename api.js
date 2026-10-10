@@ -11,11 +11,14 @@ import {validateSource,startNetworkGuard,facebookPublicAlternative} from './netw
 import {FFMPEG,PYTHON,MAX_BYTES,MAX_TIME,CLEANUP,INPUT_OPTIONS,downloadArgs,isPlatformRestricted} from './conversion-config.js';
 import {createWorkerBroker} from './worker-broker.js';
 import {cloudAudio} from './cloud-audio.js';
+import {createProgressReader,durationFromLog} from './conversion-progress.js';
 
 const origins=new Set((process.env.ALLOWED_ORIGINS||'http://127.0.0.1:5173,http://localhost:5173,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com').split(','));
 const guard=await startNetworkGuard();
 const broker=createWorkerBroker({token:process.env.CONVERTY_WORKER_TOKEN,maxBytes:MAX_BYTES,timeoutMs:MAX_TIME});
 let active=0;const clients=new Map(),cache=new Map();let globalStarts=[];
+const progressJobs=new Map();
+function updateProgress(id,state){if(id)progressJobs.set(id,{...state,updatedAt:Date.now()});}
 const MAX_CACHE=16*1024*1024;const TTL=300000;
 function fail(message,status=400){return Object.assign(new Error(message),{status});}
 function respond(res,status,text){if(res.destroyed||res.headersSent)return;res.writeHead(status,{'Content-Type':'text/plain; charset=utf-8'});res.end(text);}
@@ -27,18 +30,21 @@ function rateLimit(req){
  if(times.length>=12||times.filter(t=>t>now-60000).length>=3||globalStarts.length>=60||clients.size>5000)throw fail('Conversion limit reached. Please try again later.',429);
  times.push(now);clients.set(key,times);globalStarts.push(now);
 }
-async function run(command,args,{signal,dir}={}){
+async function run(command,args,{signal,dir,onProgress}={}){
  await new Promise((resolve,reject)=>{
-  const proc=spawn(command,args,{windowsHide:true,stdio:['ignore','ignore','pipe']});let error,diagnostic='';
+  const proc=spawn(command,args,{windowsHide:true,stdio:['ignore',onProgress?'pipe':'ignore','pipe']});let error,diagnostic='',duration=null;
+  if(onProgress)proc.stdout.on('data',createProgressReader({duration:()=>duration,report:onProgress}));
   const stop=e=>{error??=e;proc.kill('SIGKILL');};const aborted=()=>stop(fail('Conversion cancelled.'));
   const timer=setTimeout(()=>stop(fail('Conversion timed out. Try a shorter video.',408)),MAX_TIME);
   const diskTimer=dir?setInterval(async()=>{try{for(const entry of await readdir(dir)){if((await stat(path.join(dir,entry))).size>MAX_BYTES)stop(fail('The source or audio exceeds 500 MB.',413));}}catch{}},500):undefined;
-  proc.stderr.on('data',b=>{diagnostic=(diagnostic+b).slice(-1800);});proc.on('error',e=>{error=e;});signal?.addEventListener('abort',aborted,{once:true});if(signal?.aborted)aborted();
+  proc.stderr.on('data',b=>{diagnostic=(diagnostic+b).slice(-1800);duration??=durationFromLog(diagnostic);});proc.on('error',e=>{error=e;});signal?.addEventListener('abort',aborted,{once:true});if(signal?.aborted)aborted();
   proc.on('close',code=>{clearTimeout(timer);clearInterval(diskTimer);signal?.removeEventListener('abort',aborted);if(code===0&&!error){resolve();return;}const detail=diagnostic.replace(/https?:\/\/\S+/g,'[source URL]').slice(-1200);console.error('Conversion tool failure:',error?.code||code,detail);const blocked=isPlatformRestricted(diagnostic);reject(error||fail(blocked?'The platform is restricting access from our server. Please upload your original video instead.':'This source is unavailable or has no supported audio. Try uploading your original video.'));});
  });
 }
 async function encode(input,output,quality,enhance,context){
- const args=['-hide_banner','-loglevel','error','-nostdin','-y',...INPUT_OPTIONS,'-i',input,'-map','0:a:0','-vn'];if(enhance)args.push('-af',CLEANUP);
+ context.onProgress?.({stage:enhance?'Cleaning up and converting audio':'Converting audio',percent:null});
+ const args=['-hide_banner','-loglevel',context.onProgress?'info':'error','-nostdin','-y',...INPUT_OPTIONS,'-i',input,'-map','0:a:0','-vn'];if(enhance)args.push('-af',CLEANUP);
+ if(context.onProgress)args.push('-progress','pipe:1','-nostats');
  args.push('-threads','1','-c:a','libmp3lame','-b:a',`${quality}k`,'-fs',String(MAX_BYTES),output);await run(FFMPEG,args,context);
  if((await stat(output)).size>=MAX_BYTES)throw fail('The audio exceeds 500 MB.',413);
 }
@@ -50,19 +56,29 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
  const started=performance.now(),origin=req.headers.origin;
  res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');res.setHeader('Vary','Origin');
  if(origin&&!origins.has(origin)){respond(res,403,'This origin is not allowed.');return;}
- if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Access-Control-Expose-Headers','X-Converty-Filename,X-Converty-Seconds,X-Converty-Mode,X-Converty-Quality');}
+ if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Access-Control-Expose-Headers','Content-Length,X-Converty-Filename,X-Converty-Seconds,X-Converty-Mode,X-Converty-Quality');}
  let route;try{route=new URL(req.url,'http://localhost');}catch{respond(res,400,'Invalid request.');return;}
  if(route.pathname==='/api/health'&&req.method==='GET'){respond(res,200,'ready');return;}
  if(route.pathname==='/api/status'&&req.method==='GET'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({youtubeWorkerOnline:broker.isOnline(),youtubeCloudAvailable:!!process.env.JAKY_API_KEY}));return;}
+ if(route.pathname==='/api/progress'&&req.method==='GET'){
+  const id=route.searchParams.get('job');const state=progressJobs.get(id);
+  if(!state||Date.now()-state.updatedAt>MAX_TIME+300000){respond(res,404,'Progress not available.');return;}
+  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(state));return;
+ }
  if(await broker.handle(req,res,route))return;
  if(!['/api/link','/api/file'].includes(route.pathname)){respond(res,404,'Not found.');return;}
  if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'});res.end();return;}
  if(req.method!=='POST'){respond(res,405,'Use POST.');return;}
- let dir,claimed=false;const abort=new AbortController();res.on('close',()=>{if(!res.writableFinished)abort.abort();});
+ let dir,claimed=false,jobId;const abort=new AbortController();res.on('close',()=>{if(!res.writableFinished)abort.abort();});
  try{
   rateLimit(req);
   if(active>=Number(process.env.MAX_CONCURRENT||1))throw fail('The converter is busy. Please try again shortly.',429);
   active++;claimed=true;
+  const proposedId=route.searchParams.get('job');
+  if(proposedId&&/^[a-f0-9-]{36}$/.test(proposedId)&&!progressJobs.has(proposedId)){
+   for(const [id,state]of progressJobs)if(Date.now()-state.updatedAt>MAX_TIME+300000)progressJobs.delete(id);
+   if(progressJobs.size<1024){jobId=proposedId;updateProgress(jobId,{stage:'Preparing source audio',percent:null});}
+  }
   let source,cacheKey,quality,enhance;
   if(route.pathname==='/api/link'){
    if(!String(req.headers['content-type']||'').startsWith('application/json'))throw fail('Send a JSON video link.',415);
@@ -78,18 +94,18 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
    if(Number(req.headers['content-length'])>MAX_BYTES)throw fail('This video exceeds 500 MB.',413);
    quality=['128','192','256','320'].includes(route.searchParams.get('quality'))?route.searchParams.get('quality'):'320';enhance=route.searchParams.get('enhance')==='true';
   }
-  dir=await mkdtemp(path.join(tmpdir(),'converty-'));const output=path.join(dir,'audio.mp3');const context={signal:abort.signal,dir};let metadata={},mode='file';
+  dir=await mkdtemp(path.join(tmpdir(),'converty-'));const output=path.join(dir,'audio.mp3');const context={signal:abort.signal,dir,onProgress:state=>updateProgress(jobId,state)};let metadata={},mode='file';
   if(!source){
    const input=path.join(dir,'source');const handle=await open(input,'w');let size=0;
    try{for await(const chunk of req){size+=chunk.length;if(size>MAX_BYTES)throw fail('This video exceeds 500 MB.',413);await handle.write(chunk);}}finally{await handle.close();}
    if(!size)throw fail('Choose a video file.');await encode(input,output,quality,enhance,context);
   }else if(process.env.JAKY_API_KEY&&/(^|\.)(youtube\.com|youtu\.be)$/.test(source.hostname)){
-   metadata=await cloudAudio({url:source.href,output,signal:abort.signal,maxBytes:MAX_BYTES,timeoutMs:MAX_TIME,key:process.env.JAKY_API_KEY});quality='128';mode='cloud-provider';
+   metadata=await cloudAudio({url:source.href,output,signal:abort.signal,maxBytes:MAX_BYTES,timeoutMs:MAX_TIME,key:process.env.JAKY_API_KEY,onProgress:context.onProgress});quality='128';mode='cloud-provider';
    if(enhance){const input=path.join(dir,'cloud.mp3');await (await import('node:fs/promises')).rename(output,input);await encode(input,output,quality,true,context);}
   }else if(broker.isOnline()&&/(^|\.)(youtube\.com|youtu\.be)$/.test(source.hostname)){
    const result=await broker.dispatch({url:source.href,quality,enhance,output,signal:abort.signal});metadata.title=result.filename;mode='private-worker';
   }else{
-   const streamSource=url=>streamConvert({url,proxy:guard.url,metadataPath:path.join(dir,'stream.info.json'),outputPath:output,quality,enhance,signal:abort.signal});
+   const streamSource=url=>streamConvert({url,proxy:guard.url,metadataPath:path.join(dir,'stream.info.json'),outputPath:output,quality,enhance,signal:abort.signal,onProgress:context.onProgress});
    try{
     try{await streamSource(source.href);}
     catch(e){const alternative=facebookPublicAlternative(source.href);if(e.code!=='PLATFORM_RESTRICTED'||!alternative||abort.signal.aborted)throw e;source=alternative;await streamSource(source.href);}
@@ -107,9 +123,10 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
    if(info)metadata=JSON.parse((await readFile(path.join(dir,info),'utf8')).trim());
   }
   const size=(await stat(output)).size;if(!size||size>=MAX_BYTES)throw fail('No complete MP3 was produced.');
+  updateProgress(jobId,{stage:'MP3 ready',percent:100});
   const filename=audioDownloadName(metadata.title);const headers={'Content-Type':'audio/mpeg','Content-Length':size,'Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,'X-Converty-Filename':encodeURIComponent(filename),'X-Converty-Seconds':((performance.now()-started)/1000).toFixed(2),'X-Converty-Mode':mode,'X-Converty-Quality':quality};
   if(cacheKey&&size<=MAX_CACHE){const data=await readFile(output);saveCache(cacheKey,data,headers);res.writeHead(200,headers);res.end(data);}else{res.writeHead(200,headers);await pipeline(createReadStream(output),res);}
- }catch(e){respond(res,e.status||400,e.status?e.message:'Unable to convert this source. Try uploading your original video.');}
+ }catch(e){updateProgress(jobId,{stage:'Conversion stopped',percent:null});respond(res,e.status||400,e.status?e.message:'Unable to convert this source. Try uploading your original video.');}
  finally{if(claimed)active--;if(dir)await rm(dir,{recursive:true,force:true,maxRetries:3}).catch(()=>{});}
 });
 server.listen(Number(process.env.PORT||5174),process.env.HOST||'127.0.0.1',()=>console.log('Converty API ready'));

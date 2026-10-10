@@ -26,30 +26,43 @@ document.querySelector('#app').innerHTML = `
 const $ = id => document.getElementById(id);
 const processing = document.createElement('div');
 processing.className='processing'; processing.hidden=true;
-processing.innerHTML='<div class="processing-heading"><span class="processing-spinner" aria-hidden="true"></span><strong>Making your MP3</strong><span class="processing-time" aria-hidden="true">0:00</span></div><div class="processing-numbers"><b class="processing-percent">0%</b><span class="processing-remaining">Estimated progress · 100% remaining</span></div><progress class="processing-bar" aria-label="Estimated conversion progress" max="100" value="0"></progress><p class="processing-note">Progress is estimated while the server processes your video. Keep this tab open.</p>';
+processing.innerHTML='<div class="processing-heading"><span class="processing-spinner" aria-hidden="true"></span><strong>Making your MP3</strong><span class="processing-time" aria-hidden="true">0:00</span></div><div class="processing-numbers"><b class="processing-percent">0%</b><span class="processing-remaining">Waiting for measured progress</span></div><progress class="processing-bar" aria-label="Conversion progress" max="100" value="0"></progress><p class="processing-note">Keep this tab open while your video is processed.</p>';
 $('status').before(processing);
 $('again').addEventListener('click',()=>{processing.hidden=true;});
-let processingTimer;
-function showProgress(percent,complete=false){
- processing.querySelector('.processing-percent').textContent=`${percent}%`;
- processing.querySelector('.processing-remaining').textContent=complete?'Complete · Your MP3 is ready':`Estimated progress · ${100-percent}% remaining`;
- processing.querySelector('.processing-bar').value=percent;
+let processingTimer,progressPoll,progressAbort,progressJob,receivingAudio=false,uploadInProgress=false;
+function showProgress(percent,complete=false,stage='Converting audio'){
+ const measured=typeof percent==='number'&&Number.isFinite(percent);
+ processing.classList.toggle('is-indeterminate',!measured);
+ processing.querySelector('strong').textContent=complete?'Conversion complete':stage;
+ processing.querySelector('.processing-percent').textContent=measured?`${percent}%`:'Working';
+ processing.querySelector('.processing-remaining').textContent=complete?'Complete · Your MP3 is ready':measured?`${100-percent}% of this stage remaining`:'Waiting for measured progress';
+ const bar=processing.querySelector('.processing-bar');bar.setAttribute('aria-label',`${stage} progress`);
+ if(measured)bar.value=percent;else bar.removeAttribute('value');
+ processing.querySelector('.processing-note').textContent=complete?'Your MP3 is ready to listen to and download.':measured?'Measured progress for the current stage. Each stage starts at 0%.':'This stage does not report a percentage. Keep this tab open; the timer shows how long it has been running.';
+}
+async function receiveAudio(response){
+ receivingAudio=true;const total=Number(response.headers.get('Content-Length'));let loaded=0;const parts=[];
+ showProgress(total>0?0:null,false,'Downloading your MP3');
+ const reader=response.body.getReader();
+ while(true){const {done,value}=await reader.read();if(done)break;parts.push(value);loaded+=value.byteLength;showProgress(total>0?Math.min(99,Math.floor(loaded/total*100)):null,false,'Downloading your MP3');}
+ return new Blob(parts,{type:'audio/mpeg'});
 }
 function setProcessing(active, buttonId){
  processing.hidden=!active && $('result').hidden;
  document.querySelector('.converter').setAttribute('aria-busy',String(active));
  for(const id of ['load-url','convert','drop','quality','enhance','link-tab','upload-tab','video-url','again'])$(id).disabled=active || (id==='convert'&&!file);
  if(active){
-  processing.classList.remove('is-complete');processing.querySelector('strong').textContent='Making your MP3';
-  processing.querySelector('.processing-note').textContent='Progress is estimated while the server processes your video. Keep this tab open.';showProgress(0);
+  processing.classList.remove('is-complete');receivingAudio=false;uploadInProgress=buttonId==='convert';progressJob=crypto.randomUUID();progressAbort=new AbortController();
+  showProgress(buttonId==='convert'?0:null,false,buttonId==='convert'?'Uploading your video':'Preparing source audio');
   const button=$(buttonId); button.dataset.idleHtml=button.innerHTML;
   button.innerHTML='<span class="processing-spinner" aria-hidden="true"></span><span>Converting…</span>';
   button.classList.add('is-processing');
   const started=Date.now(); processing.querySelector('.processing-time').textContent='0:00';
-  const estimateSeconds=buttonId==='convert'?Math.max(15,(file.size/1024/1024)*.6):45;
-  processingTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);processing.querySelector('.processing-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;showProgress(Math.min(95,Math.floor(95*(1-Math.exp(-seconds/estimateSeconds)))));if(seconds>estimateSeconds*3)processing.querySelector('.processing-note').textContent='Still processing. Large videos or a busy server can take longer than estimated.';},1000);
+  processingTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);processing.querySelector('.processing-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;},1000);
+  const job=progressJob,signal=progressAbort.signal;let polling=false;
+  progressPoll=setInterval(async()=>{if(polling||receivingAudio||uploadInProgress||signal.aborted)return;polling=true;try{const response=await fetch(`${API}/api/progress?job=${job}`,{signal:AbortSignal.any([signal,AbortSignal.timeout(4000)])});if(response.ok){const state=await response.json();if(!signal.aborted&&!receivingAudio&&!uploadInProgress&&state.stage!=='MP3 ready')showProgress(state.percent,false,state.stage);}}catch{}finally{polling=false;}},800);
  }else{
-  clearInterval(processingTimer); $('progress-wrap').hidden=true;
+  clearInterval(processingTimer);clearInterval(progressPoll);progressAbort?.abort(); $('progress-wrap').hidden=true;
   if(!$('result').hidden){showProgress(100,true);processing.classList.add('is-complete');processing.querySelector('strong').textContent='Conversion complete';processing.querySelector('.processing-note').textContent='Your MP3 is ready to listen to and download.';}
   for(const button of document.querySelectorAll('.is-processing')){button.innerHTML=button.dataset.idleHtml;button.classList.remove('is-processing');delete button.dataset.idleHtml;}
  }
@@ -60,7 +73,7 @@ $('load-url').onclick=async()=>{
  if(busy)return;
  let url; try{url=new URL($('video-url').value); if(url.protocol!=='https:')throw 0;}catch{$('status').textContent='Paste a valid HTTPS video link.';return;}
  busy=true; setProcessing(true,'load-url'); $('result').hidden=true; $('status').textContent='Getting the best available source audio and converting…';
- try{const response=await fetch(API+'/api/link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url.href,quality:$('quality').value,enhance:$('enhance').checked}),signal:AbortSignal.timeout(1260000)}); if(!response.ok)throw new Error((await response.text()).slice(0,300));const blob=await response.blob();if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);$('audio').src=outputURL;$('download').href=outputURL;$('download').download=decodeURIComponent(response.headers.get('X-Converty-Filename')||encodeURIComponent(audioDownloadName('Untitled audio')));$('result-filename').textContent=audioDisplayName($('download').download);$('result').hidden=false;$('status').textContent=`Done · ${response.headers.get('X-Converty-Quality')||$('quality').value} kbps · ${(blob.size/1024/1024).toFixed(1)} MB · ${response.headers.get('X-Converty-Seconds')||'?'} seconds${$('enhance').checked?' · Cleanup applied':''}`;}
+ try{const response=await fetch(`${API}/api/link?job=${progressJob}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url.href,quality:$('quality').value,enhance:$('enhance').checked}),signal:AbortSignal.timeout(1260000)}); if(!response.ok)throw new Error((await response.text()).slice(0,300));const blob=await receiveAudio(response);if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);$('audio').src=outputURL;$('download').href=outputURL;$('download').download=decodeURIComponent(response.headers.get('X-Converty-Filename')||encodeURIComponent(audioDownloadName('Untitled audio')));$('result-filename').textContent=audioDisplayName($('download').download);$('result').hidden=false;$('status').textContent=`Done · ${response.headers.get('X-Converty-Quality')||$('quality').value} kbps · ${(blob.size/1024/1024).toFixed(1)} MB · ${response.headers.get('X-Converty-Seconds')||'?'} seconds${$('enhance').checked?' · Cleanup applied':''}`;}
  catch(error){$('status').textContent=error.message||'Could not convert this source. Try uploading the original video.';}
  finally{busy=false;setProcessing(false);}
 };
@@ -81,10 +94,18 @@ $('convert').onclick=async()=>{
  if(!file||busy)return;busy=true;setProcessing(true,'convert');$('result').hidden=true;
  $('status').textContent=$('enhance').checked?'Cleaning up audio and creating your MP3…':'Creating your MP3…';
  try{
-  const blob=await uploadVideo(file,`${API}/api/file?quality=${$('quality').value}&enhance=${$('enhance').checked}`);if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);
+  const blob=await uploadVideo(file,`${API}/api/file?quality=${$('quality').value}&enhance=${$('enhance').checked}&job=${progressJob}`);if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);
   $('audio').src=outputURL;$('download').href=outputURL;$('download').download=audioDownloadName(file.name);$('result-filename').textContent=audioDisplayName($('download').download);$('result').hidden=false;
   $('status').textContent=`Done · ${$('quality').value} kbps · ${(blob.size/1024/1024).toFixed(1)} MB${$('enhance').checked?' · Cleanup applied':''}`;
  }catch(error){$('status').textContent=error.message||'Could not convert this video. Check that it has audio and is under 500 MB, then retry.';}
  finally{busy=false;setProcessing(false);}
 };
-function uploadVideo(file,url){return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST',url);xhr.responseType='blob';xhr.timeout=660000;$('progress-wrap').hidden=false;$('progress').value=0;xhr.upload.onprogress=event=>{if(event.lengthComputable){const percent=Math.round(event.loaded/event.total*100);$('progress').value=percent;$('status').textContent=`Uploading video · ${percent}%`;}};xhr.upload.onload=()=>{$('progress-wrap').hidden=true;$('status').textContent=$('enhance').checked?'Cleaning up audio and creating your MP3…':'Creating your MP3…';};const fail=()=>{$('progress-wrap').hidden=true;reject(new Error('Could not reach the converter. Please retry shortly.'));};xhr.onload=async()=>{if(xhr.status===200)resolve(xhr.response);else{$('progress-wrap').hidden=true;const detail=await xhr.response.text().catch(()=>'');reject(new Error(detail.slice(0,300)||'Could not convert this video. Please retry shortly.'));}};xhr.onerror=fail;xhr.ontimeout=fail;xhr.send(file);});}
+function uploadVideo(file,url){return new Promise((resolve,reject)=>{
+ const xhr=new XMLHttpRequest();xhr.open('POST',url);xhr.responseType='blob';xhr.timeout=660000;
+ xhr.upload.onprogress=event=>{if(event.lengthComputable){const percent=Math.floor(event.loaded/event.total*100);showProgress(percent,false,'Uploading your video');$('status').textContent=`Uploading video · ${percent}%`;}};
+ xhr.upload.onload=()=>{uploadInProgress=false;showProgress(null,false,'Converting audio');$('status').textContent=$('enhance').checked?'Cleaning up audio and creating your MP3…':'Creating your MP3…';};
+ xhr.onprogress=event=>{receivingAudio=true;showProgress(event.lengthComputable?Math.min(99,Math.floor(event.loaded/event.total*100)):null,false,'Downloading your MP3');};
+ const fail=()=>reject(new Error('Could not reach the converter. Please retry shortly.'));
+ xhr.onload=async()=>{if(xhr.status===200)resolve(xhr.response);else{const detail=await xhr.response.text().catch(()=>'');reject(new Error(detail.slice(0,300)||'Could not convert this video. Please retry shortly.'));}};
+ xhr.onerror=fail;xhr.ontimeout=fail;xhr.send(file);
+});}

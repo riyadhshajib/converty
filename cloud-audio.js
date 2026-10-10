@@ -22,10 +22,11 @@ async function request(value,{signal,headers={},redirects=0}={}){
  if(response.statusCode!==200){response.resume();throw failure(response.statusCode===429?'Daily cloud conversion allowance reached. Please try later.':'Cloud audio provider is unavailable.',response.statusCode===429?429:502);}
  return response;
 }
-export async function cloudAudio({url,output,signal,maxBytes,timeoutMs,key}){
+export async function cloudAudio({url,output,signal,maxBytes,timeoutMs,key,onProgress}){
  const abort=new AbortController();const cancelled=()=>abort.abort();signal?.addEventListener('abort',cancelled,{once:true});if(signal?.aborted)cancelled();
  const timer=setTimeout(cancelled,timeoutMs);
  try{
+  onProgress?.({stage:'YouTube provider is preparing your MP3',percent:null});
   const endpoint=new URL('https://api.jaky.dev/v1/download/youtube');endpoint.searchParams.set('url',url);endpoint.searchParams.set('format','mp3');endpoint.searchParams.set('quality','128');
   const response=await request(endpoint,{signal:abort.signal,headers:{'x-jaky-key':key}});
   let raw='';for await(const chunk of response){raw+=chunk;if(Buffer.byteLength(raw)>65536)throw failure('Invalid provider response.');}
@@ -33,7 +34,9 @@ export async function cloudAudio({url,output,signal,maxBytes,timeoutMs,key}){
   if(data.status!==true||data.result?.format!=='mp3'||Number(data.result?.quality)!==128||typeof data.result?.downloadUrl!=='string')throw failure('No complete cloud audio was found.');
   const media=await request(data.result.downloadUrl,{signal:abort.signal});
   if(Number(media.headers['content-length'])>maxBytes){media.destroy();throw failure('Audio exceeds 500 MB.',413);}
-  let bytes=0;const bounded=new Transform({transform(chunk,encoding,callback){bytes+=chunk.length;callback(bytes>maxBytes?failure('Audio exceeds 500 MB.',413):null,chunk);}});
+  const total=Number(media.headers['content-length']);
+  onProgress?.({stage:'Receiving converted audio',percent:total>0?0:null});
+  let bytes=0;const bounded=new Transform({transform(chunk,encoding,callback){bytes+=chunk.length;onProgress?.({stage:'Receiving converted audio',percent:total>0?Math.min(99,Math.floor(bytes/total*100)):null});callback(bytes>maxBytes?failure('Audio exceeds 500 MB.',413):null,chunk);}});
   await pipeline(media,bounded,createWriteStream(output),{signal:abort.signal});
   if(bytes<1024)throw failure('Incomplete audio received.');
   return {title:String(data.result.title||'Audio'),quality:128};
