@@ -26,12 +26,12 @@ function rateLimit(req){
 }
 async function run(command,args,{signal,dir}={}){
  await new Promise((resolve,reject)=>{
-  const proc=spawn(command,args,{windowsHide:true,stdio:['ignore','ignore','pipe']});let error;
+  const proc=spawn(command,args,{windowsHide:true,stdio:['ignore','ignore','pipe']});let error,diagnostic='';
   const stop=e=>{error??=e;proc.kill('SIGKILL');};const aborted=()=>stop(fail('Conversion cancelled.'));
   const timer=setTimeout(()=>stop(fail('Conversion timed out. Try a shorter video.',408)),MAX_TIME);
   const diskTimer=dir?setInterval(async()=>{try{for(const entry of await readdir(dir)){if((await stat(path.join(dir,entry))).size>MAX_BYTES)stop(fail('The source or audio exceeds 500 MB.',413));}}catch{}},500):undefined;
-  proc.stderr.resume();proc.on('error',e=>{error=e;});signal?.addEventListener('abort',aborted,{once:true});if(signal?.aborted)aborted();
-  proc.on('close',code=>{clearTimeout(timer);clearInterval(diskTimer);signal?.removeEventListener('abort',aborted);code===0&&!error?resolve():reject(error||fail('This source is unavailable or has no supported audio. Try uploading your original video.'));});
+  proc.stderr.on('data',b=>{diagnostic=(diagnostic+b).slice(-1800);});proc.on('error',e=>{error=e;});signal?.addEventListener('abort',aborted,{once:true});if(signal?.aborted)aborted();
+  proc.on('close',code=>{clearTimeout(timer);clearInterval(diskTimer);signal?.removeEventListener('abort',aborted);if(code===0&&!error){resolve();return;}const detail=diagnostic.replace(/https?:\/\/\S+/g,'[source URL]').slice(-1200);console.error('Conversion tool failure:',error?.code||code,detail);const blocked=/sign in|log in|not a bot|login.required|HTTP Error 403|HTTP Error 429/i.test(diagnostic);reject(error||fail(blocked?'The platform is restricting access from our server. Please upload your original video instead.':'This source is unavailable or has no supported audio. Try uploading your original video.'));});
  });
 }
 async function encode(input,output,quality,enhance,context){
