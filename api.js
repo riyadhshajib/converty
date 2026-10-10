@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {audioDownloadName} from './naming.js';
 import {streamConvert} from './stream-safe.js';
-import {validateSource,startNetworkGuard} from './network-guard.js';
+import {validateSource,startNetworkGuard,facebookPublicAlternative} from './network-guard.js';
 import {FFMPEG,PYTHON,MAX_BYTES,MAX_TIME,CLEANUP,INPUT_OPTIONS,downloadArgs,isPlatformRestricted} from './conversion-config.js';
 
 const origins=new Set((process.env.ALLOWED_ORIGINS||'http://127.0.0.1:5173,http://localhost:5173,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com').split(','));
@@ -79,7 +79,12 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
    try{for await(const chunk of req){size+=chunk.length;if(size>MAX_BYTES)throw fail('This video exceeds 500 MB.',413);await handle.write(chunk);}}finally{await handle.close();}
    if(!size)throw fail('Choose a video file.');await encode(input,output,quality,enhance,context);
   }else{
-   try{await streamConvert({url:source.href,proxy:guard.url,metadataPath:path.join(dir,'stream.info.json'),outputPath:output,quality,enhance,signal:abort.signal});mode='stream';}
+   const streamSource=url=>streamConvert({url,proxy:guard.url,metadataPath:path.join(dir,'stream.info.json'),outputPath:output,quality,enhance,signal:abort.signal});
+   try{
+    try{await streamSource(source.href);}
+    catch(e){const alternative=facebookPublicAlternative(source.href);if(e.code!=='PLATFORM_RESTRICTED'||!alternative||abort.signal.aborted)throw e;source=alternative;await streamSource(source.href);}
+    mode='stream';
+   }
    catch(e){
     if(abort.signal.aborted||e.code==='PLATFORM_RESTRICTED')throw e;
     if(/exceeds|timed out/.test(e.message))throw fail(e.message,/exceeds/.test(e.message)?413:408);
@@ -98,8 +103,4 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
  finally{if(claimed)active--;if(dir)await rm(dir,{recursive:true,force:true,maxRetries:3}).catch(()=>{});}
 });
 server.listen(Number(process.env.PORT||5174),process.env.HOST||'127.0.0.1',()=>console.log('Converty API ready'));
-if(process.env.CONVERTY_DIAGNOSTICS==='1'){
- const diagnostic=spawn(process.execPath,['research-probe.mjs'],{windowsHide:true,stdio:['ignore','inherit','inherit']});
- diagnostic.on('error',e=>console.error('Diagnostic stopped:',e.message));
-}
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{server.close();guard.close();setTimeout(()=>process.exit(0),1000).unref();});

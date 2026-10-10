@@ -11,6 +11,14 @@ export function validateSource(value){
  if(u.protocol!=='https:'||u.username||u.password||u.port||!hosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h)))throw new Error('Use a public YouTube, Facebook, TikTok or Instagram HTTPS link, or upload your video.');
  u.hash='';return u;
 }
+export function facebookPublicAlternative(value){
+ const u=validateSource(value);
+ if(!/(^|\.)facebook\.com$/.test(u.hostname))return null;
+ const id=u.searchParams.get('v')||u.pathname.match(/\/(?:videos|reel)\/(?:vb\.\d+\/)?(\d+)/)?.[1];
+ if(!id||!/^\d+$/.test(id))return null;
+ const alternative=`https://m.facebook.com/watch/?v=${id}&_rdr`;
+ return alternative===u.href?null:new URL(alternative);
+}
 // Resolve each HTTPS tunnel once, then connect to that exact public address.
 // Redirects and extractor media requests go through this same proxy.
 export async function startNetworkGuard(){
