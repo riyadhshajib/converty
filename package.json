@@ -1,0 +1,18 @@
+{
+  "name": "converty",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build && node seo-build.mjs",
+    "start": "node api.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.3.0",
+    "ipaddr.js": "^2.2.0",
+    "vite": "^6.4.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
