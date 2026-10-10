@@ -1,5 +1,23 @@
 # Converty launch status
 
+## Current release: cloud YouTube at 128 kbps
+
+Updated 11 October 2026. Live: https://converty-tump3.web.app/
+
+YouTube links now use Jaky API on the hosted Render server when JAKY_API_KEY is configured. This path takes priority over the older owner-PC worker, so the owner PC is not required. The credential is stored only in Render environment configuration; it is absent from frontend and repository code. Public YouTube URL processing is disclosed in Privacy.
+
+Sintel was downloaded through the hosted API: HTTP 200, 14,209,580 bytes, 26.12 seconds total transfer, mode cloud-provider, actual 128 kbps stereo, 888.07 seconds. Full-file decode passed. This single warm-service measurement is not a speed or uptime guarantee.
+
+The free provider advertises 100 API requests per day shared across the site. Failed requests may consume allowance. Render Free sleeps when idle and may add 50 seconds or more on wake-up. No paid plan was enabled. YouTube MP3 remains 128 kbps; file uploads and other supported platforms retain their existing quality options. A 320 kbps selection does not upscale YouTube audio, and the result reports actual quality.
+
+Direct 320 kbps provider requests failed on two test videos with quality_too_high. This release uses the user-approved 128 kbps path. A 720p video request also returned a download URL, but is not used in production.
+
+Existing SEO pages, canonical URLs, sitemap and Search Console setup remain. Indexing, growing traffic and revenue need continued measurement; no ranking or income guarantee is made.
+
+## Previous release records
+
+# Converty launch status
+
 Verified 10 October 2026. Published beta: https://converty-tump3.web.app/
 
 ## Current release: four-platform repair

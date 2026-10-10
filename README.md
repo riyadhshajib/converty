@@ -1,3 +1,5 @@
+YouTube cloud update (11 October 2026): set JAKY_API_KEY privately on Render to enable hosted 128 kbps YouTube MP3 conversion without the owner PC. The free provider advertises 100 requests/day. Actual quality is shown after conversion. See LAUNCH-STATUS.md and CLOUD-YOUTUBE-VERIFICATION.json. Earlier worker notes below describe the fallback setup.
+
 # Converty · Any video to MP3
 
 Public beta: https://converty-tump3.web.app/

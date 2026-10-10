@@ -1,0 +1,24 @@
+{
+  "sintel_hosted_api": {
+    "status": 200,
+    "bytes": 14209580,
+    "seconds": 26.12,
+    "mode": "cloud-provider",
+    "quality": "128",
+    "filename": "Sintel%20-%20Open%20Movie%20by%20Blender%20Foundation%20-%20converty-%20tump3.mp3",
+    "full_decode": "passed",
+    "duration_seconds": 888.07,
+    "stereo": true
+  },
+  "big_buck_bunny_public_browser": {
+    "download": "completed from Converty Download MP3 button",
+    "duration_seconds": 634.66,
+    "actual_kbps": 128,
+    "full_decode": "passed",
+    "server_seconds": 3.47,
+    "ui_quality_label": "corrected after initial mismatch"
+  },
+  "free_provider_requests_per_day": 100,
+  "owner_pc_required": false,
+  "paid_plan_enabled": false
+}
