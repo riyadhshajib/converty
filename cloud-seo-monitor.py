@@ -1,5 +1,5 @@
 """Bounded public SEO checks. No Google credentials or conversion requests."""
-import os, json, urllib.request, urllib.error, xml.etree.ElementTree as ET
+import os, json, urllib.request, urllib.error, xml.etree.ElementTree as ET, importlib.util, re
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
@@ -8,6 +8,10 @@ from pathlib import Path
 BASE = 'https://converty-tump3.web.app'
 MARKER = '<!-- converty-cloud-seo-monitor -->'
 LIMIT = 1024 * 1024
+GOOGLE_STATE = '<!-- converty-google-state '
+
+def newly_indexed(current, previous):
+    return [p['url'] for p in current if p.get('indexed') is True and previous.get(p['url']) is not True]
 
 class Metadata(HTMLParser):
     def __init__(self):
@@ -68,16 +72,33 @@ def main():
     for item in results['pages']:
         if 'error' in item or item.get('status')!=200 or not item.get('canonical_ok') or item.get('indexing_blocked') or item.get('h1_count')!=1:
             problems.append('Page check failed: '+item['url'])
+    if os.environ.get('GSC_ENABLED')=='true':
+        spec=importlib.util.spec_from_file_location('google_monitor',Path(__file__).with_name('google-index-monitor.py'))
+        monitor=importlib.util.module_from_spec(spec);spec.loader.exec_module(monitor)
+        results['google']=monitor.collect(os.environ.get('GSC_ACCESS_TOKEN'))
+        results['google_index_status']='Google URL Inspection API; read-only indexed-version data'
+        if results['google']['errors']: problems.append('Google API monitoring failed; see report')
     results['problems']=problems
     Path('cloud-seo-latest.json').write_text(json.dumps(results,indent=2))
     lines=[MARKER,'## Converty cloud SEO check',f"সময় (UTC): {results['checked_at_utc']}",
            '[Converty খুলুন]('+BASE+'/)',
            ('Public checks: সব ঠিক আছে।' if not problems else 'Public checks: সমস্যা পাওয়া গেছে।'),
            f"Sitemap URLs: {results.get('sitemap_urls','unavailable')}; checked pages: {len(results['pages'])}.",
-           'Google indexing/quota পরীক্ষা করা হয়নি; আপনার নির্দেশ অনুযায়ী Google access যোগ করা হয়নি।',
+           ('Google URL Inspection API থেকে indexing status পড়া হয়েছে; নিচে ফলাফল দেখুন।' if 'google' in results else 'Google indexing পরীক্ষা করা হয়নি; এই run-এ Google authorization নেই।'),
            'এই run-এ শুধু পরীক্ষা করা হয়েছে, site code বা settings পরিবর্তন করা হয়নি।',
            'পরে আবার public checks হবে। সমস্যা থাকলে এই report অনুযায়ী তদন্ত প্রয়োজন।']
     lines.extend('- '+p for p in problems)
+    google=results.get('google')
+    if google:
+        lines.append('### Google indexing')
+        for item in google['pages']:
+            label='Google-এ indexed' if item['indexed'] else 'Google-এ indexed নিশ্চিত হয়নি'
+            lines.append(f"- [{item['url']}]({item['url']}): {label}; {item['coverage_state']} (verdict: {item['verdict']}).")
+        if google.get('sitemap'):
+            sitemap=google['sitemap']
+            lines.append('### Google sitemap processing\n'+json.dumps(sitemap,ensure_ascii=False))
+        for error in google['errors']: lines.append('Google check error: '+json.dumps(error,ensure_ascii=False))
+        lines.append('এই API indexing request পাঠায় না বা live fetch পরীক্ষা করে না।')
     report='\n\n'.join(lines)
     summary=os.environ.get('GITHUB_STEP_SUMMARY')
     if summary:
@@ -86,11 +107,22 @@ def main():
     if os.environ.get('GH_TOKEN'):
         issues=github('issues?state=all&per_page=100')
         existing=next((i for i in issues if not i.get('pull_request') and MARKER in (i.get('body') or '')),None)
+        alert=''
+        if google:
+            old=re.search(r'<!-- converty-google-state (.*?) -->',existing.get('body','') if existing else '')
+            try: previous=json.loads(old.group(1)) if old else {}
+            except (ValueError,TypeError): previous={}
+            if not isinstance(previous,dict): previous={}
+            changed=newly_indexed(google['pages'],previous)
+            current=dict(previous)
+            for item in google['pages']: current[item['url']]=item['indexed']
+            report+='\n\n'+GOOGLE_STATE+json.dumps(current)+' -->'
+            if changed: alert='Google-এ নতুন indexing নিশ্চিত হয়েছে:\n'+'\n'.join('- '+url for url in changed)+'\n\n'
         if existing and existing['state']=='closed': print('Report issue is closed; no comments added.')
         elif existing:
             github(f"issues/{existing['number']}",'PATCH',{'body':report})
-            github(f"issues/{existing['number']}/comments",'POST',{'body':'@riyadhshajib\n\n'+report})
-        else: github('issues','POST',{'title':'Converty cloud SEO updates','body':'@riyadhshajib\n\n'+report})
+            github(f"issues/{existing['number']}/comments",'POST',{'body':'@riyadhshajib\n\n'+alert+report})
+        else: github('issues','POST',{'title':'Converty cloud SEO updates','body':'@riyadhshajib\n\n'+alert+report})
     if problems: raise SystemExit(1)
 
 if __name__=='__main__':main()
