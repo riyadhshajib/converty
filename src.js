@@ -2,6 +2,7 @@ import './style.css';
 import './cream.css';
 import './mixed.css';
 import './contrast.css';
+import './processing.css';
 import {audioDownloadName,audioDisplayName} from './naming.js';
 
 
@@ -23,15 +24,35 @@ document.querySelector('#app').innerHTML = `
 <p class="honest">Great audio starts with a great source. Cleanup can improve listening comfort, but cannot recover missing detail. Up to 500 MB per source. Public links support videos up to two hours. Availability and speed depend on the source and service capacity.</p></main><footer><span class="logo">Converty<span class="audio-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span><span>LESS SCREEN. MORE SOUND.</span><span>Made for the moments you keep.</span><nav aria-label="Site information"><a href="/about/">About</a> · <a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a></nav></footer>
 <dialog id="guide"><button id="close" aria-label="Close instructions">✕</button><div class="eyebrow">THREE SIMPLE STEPS</div><h2>From video to<br>on repeat.</h2><ol><li>Paste a video link or choose a file.</li><li>Select MP3 quality and optional audio cleanup.</li><li>Convert, listen, and download your MP3.</li></ol><p>Paste a public video link or choose a file. Links request the best available audio. Larger sources and cleanup take longer. Keep this tab open during conversion.</p></dialog>`;
 const $ = id => document.getElementById(id);
+const processing = document.createElement('div');
+processing.className='processing'; processing.hidden=true;
+processing.innerHTML='<span class="processing-spinner" aria-hidden="true"></span><div><strong>Making your MP3</strong><span>Keep this tab open. Larger videos can take a little longer.</span></div><span class="processing-time" aria-hidden="true">0:00</span>';
+$('status').before(processing);
+let processingTimer;
+function setProcessing(active, buttonId){
+ processing.hidden=!active;
+ document.querySelector('.converter').setAttribute('aria-busy',String(active));
+ for(const id of ['load-url','convert','drop','quality','enhance','link-tab','upload-tab','video-url','again'])$(id).disabled=active || (id==='convert'&&!file);
+ if(active){
+  const button=$(buttonId); button.dataset.idleHtml=button.innerHTML;
+  button.innerHTML='<span class="processing-spinner" aria-hidden="true"></span><span>Converting…</span>';
+  button.classList.add('is-processing');
+  const started=Date.now(); processing.querySelector('.processing-time').textContent='0:00';
+  processingTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);processing.querySelector('.processing-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;},1000);
+ }else{
+  clearInterval(processingTimer); $('progress-wrap').hidden=true;
+  for(const button of document.querySelectorAll('.is-processing')){button.innerHTML=button.dataset.idleHtml;button.classList.remove('is-processing');delete button.dataset.idleHtml;}
+ }
+}
 fetch(API+'/api/status',{signal:AbortSignal.timeout(8000)}).then(r=>r.ok?r.json():null).then(state=>{if(state?.youtubeCloudAvailable)$('link-availability').textContent='YouTube links convert in the cloud at 128 kbps. No app or account needed. Other public links depend on platform availability.';else if(state?.youtubeWorkerOnline)$('link-availability').textContent='Paste a public YouTube, Facebook, TikTok or Instagram video link. We request the best available source audio. Private and protected videos may be unavailable.';}).catch(()=>{});
 for(const type of ['upload','link']) $(type+'-tab').onclick=()=>{if(busy)return; $('link-panel').hidden=type!=='link'; $('drop').hidden=type!=='upload'; $('convert').hidden=type!=='upload'; $('upload-tab').classList.toggle('active',type==='upload'); $('link-tab').classList.toggle('active',type==='link');};
 $('load-url').onclick=async()=>{
  if(busy)return;
  let url; try{url=new URL($('video-url').value); if(url.protocol!=='https:')throw 0;}catch{$('status').textContent='Paste a valid HTTPS video link.';return;}
- busy=true; $('load-url').disabled=true; $('convert').disabled=true; $('quality').disabled=true; $('enhance').disabled=true; $('result').hidden=true; $('status').textContent='Getting the best available source audio and converting…';
+ busy=true; setProcessing(true,'load-url'); $('result').hidden=true; $('status').textContent='Getting the best available source audio and converting…';
  try{const response=await fetch(API+'/api/link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url.href,quality:$('quality').value,enhance:$('enhance').checked}),signal:AbortSignal.timeout(1260000)}); if(!response.ok)throw new Error((await response.text()).slice(0,300));const blob=await response.blob();if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);$('audio').src=outputURL;$('download').href=outputURL;$('download').download=decodeURIComponent(response.headers.get('X-Converty-Filename')||encodeURIComponent(audioDownloadName('Untitled audio')));$('result-filename').textContent=audioDisplayName($('download').download);$('result').hidden=false;$('status').textContent=`Done · ${response.headers.get('X-Converty-Quality')||$('quality').value} kbps · ${(blob.size/1024/1024).toFixed(1)} MB · ${response.headers.get('X-Converty-Seconds')||'?'} seconds${$('enhance').checked?' · Cleanup applied':''}`;}
  catch(error){$('status').textContent=error.message||'Could not convert this source. Try uploading the original video.';}
- finally{busy=false;$('load-url').disabled=false;$('convert').disabled=!file;$('quality').disabled=false;$('enhance').disabled=false;}
+ finally{busy=false;setProcessing(false);}
 };
 let file, outputURL, busy = false;
 function choose(f) {
@@ -46,13 +67,13 @@ $('drop').addEventListener('drop',e=>{e.preventDefault(); $('drop').classList.re
 $('help').onclick=()=>$('guide').showModal(); $('close').onclick=()=>$('guide').close();
 $('again').onclick=()=>{file=null; $('file').value=''; $('file-title').textContent='Drop your video here'; $('file-sub').textContent='or click to browse your files'; $('result').hidden=true; $('convert').disabled=true; $('status').textContent='Choose a video to get started.'; if(outputURL) URL.revokeObjectURL(outputURL); $('audio').removeAttribute('src');};
 $('convert').onclick=async()=>{
- if(!file||busy)return;busy=true;for(const id of ['convert','drop','quality','enhance'])$(id).disabled=true;$('result').hidden=true;
+ if(!file||busy)return;busy=true;setProcessing(true,'convert');$('result').hidden=true;
  $('status').textContent=$('enhance').checked?'Cleaning up audio and creating your MP3…':'Creating your MP3…';
  try{
   const blob=await uploadVideo(file,`${API}/api/file?quality=${$('quality').value}&enhance=${$('enhance').checked}`);if(outputURL)URL.revokeObjectURL(outputURL);outputURL=URL.createObjectURL(blob);
   $('audio').src=outputURL;$('download').href=outputURL;$('download').download=audioDownloadName(file.name);$('result-filename').textContent=audioDisplayName($('download').download);$('result').hidden=false;
   $('status').textContent=`Done · ${$('quality').value} kbps · ${(blob.size/1024/1024).toFixed(1)} MB${$('enhance').checked?' · Cleanup applied':''}`;
  }catch(error){$('status').textContent=error.message||'Could not convert this video. Check that it has audio and is under 500 MB, then retry.';}
- finally{busy=false;for(const id of ['convert','drop','quality','enhance'])$(id).disabled=false;}
+ finally{busy=false;setProcessing(false);}
 };
 function uploadVideo(file,url){return new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST',url);xhr.responseType='blob';xhr.timeout=660000;$('progress-wrap').hidden=false;$('progress').value=0;xhr.upload.onprogress=event=>{if(event.lengthComputable){const percent=Math.round(event.loaded/event.total*100);$('progress').value=percent;$('status').textContent=`Uploading video · ${percent}%`;}};xhr.upload.onload=()=>{$('progress-wrap').hidden=true;$('status').textContent=$('enhance').checked?'Cleaning up audio and creating your MP3…':'Creating your MP3…';};const fail=()=>{$('progress-wrap').hidden=true;reject(new Error('Could not reach the converter. Please retry shortly.'));};xhr.onload=async()=>{if(xhr.status===200)resolve(xhr.response);else{$('progress-wrap').hidden=true;const detail=await xhr.response.text().catch(()=>'');reject(new Error(detail.slice(0,300)||'Could not convert this video. Please retry shortly.'));}};xhr.onerror=fail;xhr.ontimeout=fail;xhr.send(file);});}
