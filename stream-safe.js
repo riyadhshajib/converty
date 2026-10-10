@@ -1,15 +1,16 @@
 import {spawn} from 'node:child_process';
 import {stat,readFile} from 'node:fs/promises';
 import {createProgressReader} from './conversion-progress.js';
+import {encoderOptions} from './audio-formats.js';
 import {FFMPEG,PYTHON,MAX_BYTES,MAX_TIME,CLEANUP,INPUT_OPTIONS,downloadArgs,isPlatformRestricted} from './conversion-config.js';
-export async function streamConvert({url,proxy,metadataPath,outputPath,quality,enhance,signal,onProgress}){
+export async function streamConvert({url,proxy,metadataPath,outputPath,quality,enhance,signal,onProgress,format='mp3'}){
  let bytes=0;
  await new Promise((resolve,reject)=>{
   let pending=2,failed,diagnostic='';
   const downloader=spawn(PYTHON,[...downloadArgs(proxy),'--quiet','--no-simulate','--print-to-file','before_dl:%()j',metadataPath,'-o','-','--',url],{windowsHide:true,stdio:['ignore','pipe','pipe']});
   const args=['-hide_banner','-loglevel','error','-nostdin','-y',...INPUT_OPTIONS,'-i','pipe:0','-map','0:a:0','-vn'];
   if(enhance)args.push('-af',CLEANUP);
-  args.push('-threads','1','-c:a','libmp3lame','-b:a',`${quality}k`,'-fs',String(MAX_BYTES),outputPath);
+  args.push('-threads','1',...encoderOptions(format,quality),'-fs',String(MAX_BYTES),outputPath);
   if(onProgress)args.splice(args.length-1,0,'-progress','pipe:1','-nostats');
   const encoder=spawn(FFMPEG,args,{windowsHide:true,stdio:['pipe',onProgress?'pipe':'ignore','pipe']});
   let duration=null;

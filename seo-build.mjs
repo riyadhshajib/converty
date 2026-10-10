@@ -1,9 +1,10 @@
+import {headphoneMark} from './logo.js';
 import {renderGuide} from './seo-guides.mjs';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 const base='https://converty-tump3.web.app';
 const src=await readFile('src.js','utf8');
 const arrow=src.match(/const arrow = '([^']+)';/)[1];
-const markup=src.split("document.querySelector('#app').innerHTML = `")[1].split('`;')[0].replaceAll('${arrow}',arrow);
+const markup=src.split("document.querySelector('#app').innerHTML = `")[1].split('`;')[0].replaceAll('${arrow}',arrow).replaceAll('${headphoneMark("header-headphones")}',headphoneMark('header-headphones')).replaceAll('${headphoneMark("footer-headphones")}',headphoneMark('footer-headphones'));
 let home=await readFile('dist/index.html','utf8');
 const pages=[
  ['youtube-to-mp3','YouTube to MP3','Paste a public YouTube video link, then preview and download a 128 kbps MP3. Converty keeps a readable video title.','Link conversion depends on current processing capacity. Some YouTube videos require sign-in, are region restricted, or block automated access. If a link fails or processing is offline, upload your original video instead.'],
@@ -12,9 +13,9 @@ const pages=[
  ['instagram-video-to-mp3','Instagram Video to MP3','Use the public link of an Instagram video or reel you are allowed to convert. For your own recordings, uploading the original file is often the most reliable option.','Instagram may limit access to a link. A higher MP3 bitrate cannot restore detail removed by the original platform encoding.']
 ];
 const links=pages.map(([slug,title])=>`<a href="/${slug}/">${title}</a>`).join(' · ');
-const guide=`<section style="max-width:760px;margin:48px auto;padding:24px;line-height:1.7;color:#293344"><h2>Video to MP3, from your file or a supported link</h2><p>Choose a video, select audio quality, and download your MP3. The best available source audio is requested for supported public links. Optional cleanup reduces noise and balances volume; it cannot restore missing detail.</p><nav aria-label="Conversion guides">${links}</nav><p>Only convert media you own or have permission to use. Platform availability and processing time vary.</p></section>`;
+const guide=`<section style="max-width:760px;margin:48px auto;padding:24px;line-height:1.7;color:#293344"><h2>Video to audio, from your file or a supported link</h2><p>Choose MP3, M4A, WAV, FLAC or OGG, select audio quality, and download your audio. The best available source audio is requested for supported public links. Optional cleanup reduces noise and balances volume; it cannot restore missing detail.</p><nav aria-label="Conversion guides">${links}</nav><p>Only convert media you own or have permission to use. Platform availability and processing time vary.</p></section>`;
 home=home.replace('<div id="app"></div>',`<div id="app">${markup}</div>${guide}`);
-const appSchema={'@context':'https://schema.org','@type':'WebApplication',name:'Converty',url:base+'/',applicationCategory:'MultimediaApplication',operatingSystem:'Web browser',description:'Convert original video files and supported public video links to MP3. YouTube links currently produce 128 kbps MP3.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'}};
+const appSchema={'@context':'https://schema.org','@type':'WebApplication',name:'Converty',url:base+'/',applicationCategory:'MultimediaApplication',operatingSystem:'Web browser',description:'Convert original video files and supported public video links to MP3, M4A, WAV, FLAC or OGG. YouTube sources currently start at 128 kbps MP3.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'}};
 home=home.replace('</head>',`<script type="application/ld+json">${JSON.stringify(appSchema)}</script></head>`);
 await writeFile('dist/index.html',home);
 const css=home.match(/<link rel="stylesheet"[^>]+>/g)?.join('')||'';
