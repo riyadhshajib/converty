@@ -26,21 +26,31 @@ document.querySelector('#app').innerHTML = `
 const $ = id => document.getElementById(id);
 const processing = document.createElement('div');
 processing.className='processing'; processing.hidden=true;
-processing.innerHTML='<span class="processing-spinner" aria-hidden="true"></span><div><strong>Making your MP3</strong><span>Keep this tab open. Larger videos can take a little longer.</span></div><span class="processing-time" aria-hidden="true">0:00</span>';
+processing.innerHTML='<div class="processing-heading"><span class="processing-spinner" aria-hidden="true"></span><strong>Making your MP3</strong><span class="processing-time" aria-hidden="true">0:00</span></div><div class="processing-numbers"><b class="processing-percent">0%</b><span class="processing-remaining">Estimated progress · 100% remaining</span></div><progress class="processing-bar" aria-label="Estimated conversion progress" max="100" value="0"></progress><p class="processing-note">Progress is estimated while the server processes your video. Keep this tab open.</p>';
 $('status').before(processing);
+$('again').addEventListener('click',()=>{processing.hidden=true;});
 let processingTimer;
+function showProgress(percent,complete=false){
+ processing.querySelector('.processing-percent').textContent=`${percent}%`;
+ processing.querySelector('.processing-remaining').textContent=complete?'Complete · Your MP3 is ready':`Estimated progress · ${100-percent}% remaining`;
+ processing.querySelector('.processing-bar').value=percent;
+}
 function setProcessing(active, buttonId){
- processing.hidden=!active;
+ processing.hidden=!active && $('result').hidden;
  document.querySelector('.converter').setAttribute('aria-busy',String(active));
  for(const id of ['load-url','convert','drop','quality','enhance','link-tab','upload-tab','video-url','again'])$(id).disabled=active || (id==='convert'&&!file);
  if(active){
+  processing.classList.remove('is-complete');processing.querySelector('strong').textContent='Making your MP3';
+  processing.querySelector('.processing-note').textContent='Progress is estimated while the server processes your video. Keep this tab open.';showProgress(0);
   const button=$(buttonId); button.dataset.idleHtml=button.innerHTML;
   button.innerHTML='<span class="processing-spinner" aria-hidden="true"></span><span>Converting…</span>';
   button.classList.add('is-processing');
   const started=Date.now(); processing.querySelector('.processing-time').textContent='0:00';
-  processingTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);processing.querySelector('.processing-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;},1000);
+  const estimateSeconds=buttonId==='convert'?Math.max(15,(file.size/1024/1024)*.6):45;
+  processingTimer=setInterval(()=>{const seconds=Math.floor((Date.now()-started)/1000);processing.querySelector('.processing-time').textContent=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;showProgress(Math.min(95,Math.floor(95*(1-Math.exp(-seconds/estimateSeconds)))));if(seconds>estimateSeconds*3)processing.querySelector('.processing-note').textContent='Still processing. Large videos or a busy server can take longer than estimated.';},1000);
  }else{
   clearInterval(processingTimer); $('progress-wrap').hidden=true;
+  if(!$('result').hidden){showProgress(100,true);processing.classList.add('is-complete');processing.querySelector('strong').textContent='Conversion complete';processing.querySelector('.processing-note').textContent='Your MP3 is ready to listen to and download.';}
   for(const button of document.querySelectorAll('.is-processing')){button.innerHTML=button.dataset.idleHtml;button.classList.remove('is-processing');delete button.dataset.idleHtml;}
  }
 }
@@ -59,6 +69,7 @@ function choose(f) {
  if (!f || busy) return;
  if(f.size > 500 * 1024 * 1024) { $('status').textContent = 'This file exceeds 500 MB. Choose a smaller video.'; return; }
  file=f; $('file-title').textContent=f.name; $('file-sub').textContent=`${(f.size/1024/1024).toFixed(1)} MB · Ready to convert`; $('convert').disabled=false; $('status').textContent='Ready. Choose your quality and make it audio.'; $('result').hidden=true;
+ processing.hidden=true;
 }
 $('drop').onclick=()=>$('file').click(); $('file').onchange=e=>choose(e.target.files[0]);
 for (const event of ['dragenter','dragover']) $('drop').addEventListener(event,e=>{e.preventDefault(); $('drop').classList.add('dragging');});
