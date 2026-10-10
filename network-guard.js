@@ -5,10 +5,10 @@ import ipaddr from 'ipaddr.js';
 export function isPublicAddress(value){
  try{let ip=ipaddr.parse(value);if(ip.kind()==='ipv6'&&ip.isIPv4MappedAddress())ip=ip.toIPv4Address();return ip.range()==='unicast'&&(ip.kind()==='ipv4'||ip.match(ipaddr.parse('2000::'),3));}catch{return false;}
 }
-const hosts=['youtube.com','youtu.be','facebook.com','fb.watch','instagram.com','tiktok.com','vimeo.com','dailymotion.com','dai.ly'];
+const hosts=['youtube.com','youtu.be','facebook.com','fb.watch','instagram.com','tiktok.com'];
 export function validateSource(value){
  let u;try{u=new URL(value);}catch{throw new Error('Paste a valid video link.');}
- if(u.protocol!=='https:'||u.username||u.password||u.port||!hosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h)))throw new Error('Use a public YouTube, Facebook, Instagram, TikTok, Vimeo or Dailymotion HTTPS link, or upload your video.');
+ if(u.protocol!=='https:'||u.username||u.password||u.port||!hosts.some(h=>u.hostname===h||u.hostname.endsWith('.'+h)))throw new Error('Use a public YouTube, Facebook, TikTok or Instagram HTTPS link, or upload your video.');
  u.hash='';return u;
 }
 // Resolve each HTTPS tunnel once, then connect to that exact public address.
