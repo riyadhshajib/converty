@@ -1,29 +1,30 @@
 # Converty growth and monetization
 
-The goal is steady growth and the ability to earn later, not immediate revenue.
+The goal is steady growth and the ability to earn later. The site is published as a free public beta, with platform limitations disclosed. Reliable hosted YouTube conversion remains the main unmet product requirement. Fixing conversion success is more valuable than bringing visitors to a failing primary flow.
 
-## Launch gate
+## Search foundation, 10 October 2026
 
-My Concept is a separate Firebase project (`my-concept-riyad`). The dedicated Hosting site is `converty-tump3`. Its reserved URL is https://converty-tump3.web.app. A complete public converter has NOT yet been deployed. The native conversion backend needs hosting and public-deployment security review. Firebase Spark Hosting alone cannot run Python/FFmpeg.
+- Home intent: video to MP3 and video to audio. Supporting pages cover YouTube to MP3, Facebook video to MP3 and Instagram video to MP3 with honest source-access and quality guidance.
+- Crawlable HTML, unique titles/descriptions, canonical URLs, robots.txt and a seven-page sitemap are published. About, Privacy and Terms pages are live. Invalid routes return 404.
+- Google Search Console ownership was verified using the owner's Google account and an HTML verification tag. The sitemap was submitted. Search Console currently reports that it could not read the sitemap; a direct external request returns HTTP 200 and valid XML. Successful Google ingestion and indexing remain unverified.
+- No search-volume estimates, keyword-difficulty scores or ranking promises are made. Keyword choices match the product's stated search intent; they are not a measured competition study.
 
-Render offers free compute, but its account must be created by the owner and its terms accepted with specific approval. Free instances sleep after inactivity and have limited resources. Do not enable Google Cloud billing or paid upgrades for this launch.
+## Priorities
 
-## Search intent
+1. Reliability first: uploads are the dependable route for original files. Instagram and TikTok each passed a hosted sample. YouTube and Facebook return access restrictions; Vimeo and Dailymotion also failed the hosted samples. Do not advertise universal platform success.
+2. Review Search Console for sitemap ingestion, indexed pages, impressions, clicks and actual queries. No recurring monitor has been scheduled. Use observed demand to improve useful original guides rather than duplicating keyword pages.
+3. Measure completion, error categories and time without collecting private links or storing user media. Review consent and privacy needs before adding analytics. No analytics or advertising tags are installed today.
+4. Add a public support route and complete account/IAM access review before promoting widely. A support email was not invented or taken from the owner's private login address.
+5. Consider ads only after the tool is reliable and has useful original content. Approval is separate and not guaranteed. Creator tools or batch processing are possible later revenue paths, but need measured operating costs and explicit approval for paid services.
 
-Primary home intent: video to MP3 and video to audio. Supporting guides: YouTube to MP3, Facebook video to MP3, Instagram video to MP3. The guide pages give actual steps, source-quality limits and access restrictions. Avoid duplicate pages for every keyword spelling. Search volume and difficulty have not been measured, and rankings are not guaranteed.
+## Operating choices
 
-The build generates crawlable home content, unique guide titles/descriptions, canonical URLs, robots.txt and sitemap.xml. Submit the sitemap in the owner's Google Search Console after the functional public deployment is verified. Track impressions, clicks and queries there. Search Console verification is not complete.
+- Current free beta: Firebase Hosting plus Render Free. Lowest immediate cost, but cold starts, limited compute and platform restrictions reduce reliability.
+- Upload-focused growth: useful now for recordings and owned files, avoids dependence on social-platform server access and usually preserves the best input quality.
+- Later dedicated capacity: may improve queueing, uptime and processing speed when justified by traffic. Paying for hosting does not guarantee YouTube or Facebook will permit automated access. Do not add authentication cookies, access-control bypasses or paid proxy services as an assumed fix.
 
-## Steady growth
+## Evidence limits
 
-1. Launch: verify real hosted YouTube, Facebook and Instagram flows, download names, mobile layout, errors and cleanup. Publish accurate privacy/terms and a working support route.
-2. First month: collect conversion success rates and typical conversion times without storing user media or private links. Review Search Console weekly. Improve the platform with the most failures before adding more platforms.
-3. Content: publish useful, original help about audio quality, extracting your own video audio, file compatibility and platform restrictions. Use search queries actually observed in Search Console to prioritize content.
-4. Monetization: consider ads only after the service is reliable and has useful original content. Approval is separate and not guaranteed. Consider optional batch processing or creator tools later, with clear pricing and rights-respecting use.
-5. Operating costs: measure bandwidth, CPU, disk and abuse before expanding. Free quotas do not guarantee unlimited traffic, 500 MB conversions or permanent fast service.
+A 320 kbps output does not prove lossless audio or recovered detail. The exact 500 MiB test used a short valid MP4 padded with a valid free atom; it proves acceptance and conversion of a large upload, not performance for a long or complex 500 MiB video. Free quotas do not guarantee unlimited traffic or permanent fast service. Revenue and search rankings are unverified.
 
-## Evidence boundaries
-
-Local conversion tests are not hosted production tests. A 320 kbps output is not proof of lossless audio. MP3 cannot recover detail missing from the source. The 500 MB upload setting is implemented; a representative 500 MB production conversion has not yet been verified. Public security, owner-only IAM, Search Console and monetization setup remain unfinished.
-
-Sources: https://render.com/docs/free ; https://firebase.google.com/docs/hosting/cloud-run ; https://developers.google.com/search/docs/fundamentals/seo-starter-guide ; https://support.google.com/publisherpolicies/answer/10402772
+Official references: https://render.com/docs/free ; https://firebase.google.com/docs/hosting/cloud-run ; https://developers.google.com/search/docs/fundamentals/seo-starter-guide ; https://support.google.com/publisherpolicies/answer/10402772

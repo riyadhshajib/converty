@@ -5,8 +5,8 @@ const arrow=src.match(/const arrow = '([^']+)';/)[1];
 const markup=src.split("document.querySelector('#app').innerHTML = `")[1].split('`;')[0].replaceAll('${arrow}',arrow);
 let home=await readFile('dist/index.html','utf8');
 const pages=[
- ['youtube-to-mp3','YouTube to MP3','Use a public YouTube video you own or have permission to convert. Copy its watch or share link, paste it into Converty, and choose your MP3 bitrate.','Some YouTube videos require sign-in, are region restricted, or block automated access. If a link fails, upload your original video instead.'],
- ['facebook-video-to-mp3','Facebook Video to MP3','Copy the link to a public Facebook video with an audio track. Paste it into Converty, choose quality, and preview the result before downloading.','Private groups, restricted posts, and videos without audio cannot be converted from a public link. Converty does not bypass login or access controls.'],
+ ['youtube-to-mp3','YouTube to MP3','YouTube link conversion is currently restricted in this beta. For a video you own or have permission to use, upload the original file and choose your MP3 bitrate.','Some YouTube videos require sign-in, are region restricted, or block automated access. If a link fails, upload your original video instead.'],
+ ['facebook-video-to-mp3','Facebook Video to MP3','Facebook link conversion is currently restricted in this beta. Upload your original video, choose quality, and preview the MP3 before downloading.','Private groups, restricted posts, and videos without audio cannot be converted from a public link. Converty does not bypass login or access controls.'],
  ['instagram-video-to-mp3','Instagram Video to MP3','Use the public link of an Instagram video or reel you are allowed to convert. For your own recordings, uploading the original file is often the most reliable option.','Instagram may limit access to a link. A higher MP3 bitrate cannot restore detail removed by the original platform encoding.']
 ];
 const links=pages.map(([slug,title])=>`<a href="/${slug}/">${title}</a>`).join(' · ');

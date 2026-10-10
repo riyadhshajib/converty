@@ -8,7 +8,7 @@ import path from 'node:path';
 import {audioDownloadName} from './naming.js';
 import {streamConvert} from './stream-safe.js';
 import {validateSource,startNetworkGuard} from './network-guard.js';
-import {FFMPEG,PYTHON,MAX_BYTES,MAX_TIME,CLEANUP,INPUT_OPTIONS,downloadArgs} from './conversion-config.js';
+import {FFMPEG,PYTHON,MAX_BYTES,MAX_TIME,CLEANUP,INPUT_OPTIONS,downloadArgs,isPlatformRestricted} from './conversion-config.js';
 
 const origins=new Set((process.env.ALLOWED_ORIGINS||'http://127.0.0.1:5173,http://localhost:5173,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com').split(','));
 const guard=await startNetworkGuard();
@@ -31,7 +31,7 @@ async function run(command,args,{signal,dir}={}){
   const timer=setTimeout(()=>stop(fail('Conversion timed out. Try a shorter video.',408)),MAX_TIME);
   const diskTimer=dir?setInterval(async()=>{try{for(const entry of await readdir(dir)){if((await stat(path.join(dir,entry))).size>MAX_BYTES)stop(fail('The source or audio exceeds 500 MB.',413));}}catch{}},500):undefined;
   proc.stderr.on('data',b=>{diagnostic=(diagnostic+b).slice(-1800);});proc.on('error',e=>{error=e;});signal?.addEventListener('abort',aborted,{once:true});if(signal?.aborted)aborted();
-  proc.on('close',code=>{clearTimeout(timer);clearInterval(diskTimer);signal?.removeEventListener('abort',aborted);if(code===0&&!error){resolve();return;}const detail=diagnostic.replace(/https?:\/\/\S+/g,'[source URL]').slice(-1200);console.error('Conversion tool failure:',error?.code||code,detail);const blocked=/sign in|log in|not a bot|login.required|HTTP Error 403|HTTP Error 429/i.test(diagnostic);reject(error||fail(blocked?'The platform is restricting access from our server. Please upload your original video instead.':'This source is unavailable or has no supported audio. Try uploading your original video.'));});
+  proc.on('close',code=>{clearTimeout(timer);clearInterval(diskTimer);signal?.removeEventListener('abort',aborted);if(code===0&&!error){resolve();return;}const detail=diagnostic.replace(/https?:\/\/\S+/g,'[source URL]').slice(-1200);console.error('Conversion tool failure:',error?.code||code,detail);const blocked=isPlatformRestricted(diagnostic);reject(error||fail(blocked?'The platform is restricting access from our server. Please upload your original video instead.':'This source is unavailable or has no supported audio. Try uploading your original video.'));});
  });
 }
 async function encode(input,output,quality,enhance,context){
@@ -81,7 +81,7 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
   }else{
    try{await streamConvert({url:source.href,proxy:guard.url,metadataPath:path.join(dir,'stream.info.json'),outputPath:output,quality,enhance,signal:abort.signal});mode='stream';}
    catch(e){
-    if(abort.signal.aborted)throw e;
+    if(abort.signal.aborted||e.code==='PLATFORM_RESTRICTED')throw e;
     if(/exceeds|timed out/.test(e.message))throw fail(e.message,/exceeds/.test(e.message)?413:408);
     await run(PYTHON,[...downloadArgs(guard.url),'--write-info-json','-o',path.join(dir,'source.%(ext)s'),'--',source.href],context);
     const files=await readdir(dir);const input=files.find(f=>f.startsWith('source.')&&!/\.(json|part|ytdl)$/.test(f));if(!input)throw fail('No downloadable audio was found.');

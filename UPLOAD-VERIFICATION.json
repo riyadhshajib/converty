@@ -1,0 +1,17 @@
+{
+  "local": {
+    "exact_500MiB_status": 200,
+    "seconds": 4.48,
+    "mp3_bytes": 83735,
+    "note": "Valid 2-second MP4 with a large MP4 free atom; verifies upload-size boundary, not long-video performance.",
+    "over_limit_status": 413,
+    "playlist_status": 400
+  },
+  "hosted": {
+    "exact_500MiB_status": 200,
+    "mp3_bytes": 83734,
+    "bitrate": 320000,
+    "duration": 2.063673469387755,
+    "note": "Hosted upload assertion passed and MP3 was saved. Follow-up oversized-header-only request was closed by the hosting edge, so that remote check is inconclusive. A padded 2-second video tests size handling, not a long recording."
+  }
+}

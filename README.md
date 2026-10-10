@@ -1,11 +1,21 @@
 # Converty · Any video to MP3
 
-Run `node start.mjs` from this folder, then open http://127.0.0.1:5173.
+Public beta: https://converty-tump3.web.app/
 
-Requires Node.js and Python with `yt-dlp` installed (`python -m pip install "yt-dlp[default,curl-cffi]"`). Dependencies are already installed on this computer. For a fresh setup run `npm install` and `node node_modules/ffmpeg-static/install.js`.
+Native API: https://converty-tump3-api.onrender.com
 
-Paste a supported public video link or upload an original file (up to 500 MB). Choose 128–320 kbps MP3 and optional noise reduction/loudness normalization. The API requests the best available audio for links, uses native FFmpeg, and deletes temporary job files. Link results may be cached in bounded memory for five minutes.
+Firebase project: `my-concept-riyad` (My Concept). Private source: `riyadhshajib/converty`. Render is authorized for this repository only. Both hosting services use free plans; Google Cloud billing is disabled.
 
-Local samples from YouTube, Facebook, Instagram, TikTok, Vimeo and Dailymotion have converted successfully. This is sample coverage, not a guarantee for every video. The new guarded API has separately passed a real upload and YouTube conversion. Protected or authenticated sources may fail. Cleanup cannot recreate lost source detail. Speed depends on source downloads, duration, processing and hardware.
+The published service has converted real uploads, an Instagram sample and a TikTok sample to 320 kbps MP3. A 500 MiB upload boundary test also passed. Hosted YouTube, Facebook, Vimeo and Dailymotion samples failed; see LAUNCH-STATUS.md. Local success does not establish hosted availability. The UI discloses the YouTube/Facebook limitation.
 
-The Dockerfile packages the native API for Render. Firebase Hosting serves the Vite frontend. Set VITE_API_URL to the deployed API origin when building the frontend. See OWNER-OPERATIONS.md for limits and deployment steps. Public deployment and production verification are still pending.
+## Run locally
+
+Run `npm install`, `node node_modules/ffmpeg-static/install.js`, and `python -m pip install "yt-dlp[default,curl-cffi]"`. Then run `node start.mjs` and open http://127.0.0.1:5173. Node.js 22+ and Python are required. The production service starts with `npm start`.
+
+Paste a supported public video link or upload your original video, up to 500 MiB. Choose 128–320 kbps MP3 and optional noise reduction/loudness normalization. MP3 is lossy; cleanup cannot restore missing source detail. Downloads append ` - converty- tump3.mp3`; the displayed title omits the file extension.
+
+## Deploy
+
+Render builds Docker from the private repository's main branch. Its free instance runs one conversion at a time. Firebase serves the static frontend. Build with `VITE_API_URL=https://converty-tump3-api.onrender.com`, then deploy Hosting explicitly to project `my-concept-riyad`. Do not deploy to AaloPro.
+
+Read OWNER-OPERATIONS.md for configuration and security limits, LAUNCH-STATUS.md for observed results, and GROWTH.md for search and monetization priorities.
