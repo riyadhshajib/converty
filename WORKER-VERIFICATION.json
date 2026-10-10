@@ -1,0 +1,25 @@
+{
+  "authorizationChecks": "passed",
+  "conversions": [
+    {
+      "name": "youtube-regression",
+      "status": 200,
+      "seconds": 9.609,
+      "bytes": 762285,
+      "mode": "private-worker",
+      "filename": "Me at the zoo - converty- tump3.mp3",
+      "verified_bitrate": 320000,
+      "duration_seconds": 19.032
+    },
+    {
+      "name": "youtube-second-video",
+      "status": 200,
+      "seconds": 39.745,
+      "bytes": 25385325,
+      "mode": "private-worker",
+      "filename": "Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film - converty- tump3.mp3",
+      "verified_bitrate": 320000,
+      "duration_seconds": 634.608
+    }
+  ]
+}

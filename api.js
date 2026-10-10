@@ -9,9 +9,11 @@ import {audioDownloadName} from './naming.js';
 import {streamConvert} from './stream-safe.js';
 import {validateSource,startNetworkGuard,facebookPublicAlternative} from './network-guard.js';
 import {FFMPEG,PYTHON,MAX_BYTES,MAX_TIME,CLEANUP,INPUT_OPTIONS,downloadArgs,isPlatformRestricted} from './conversion-config.js';
+import {createWorkerBroker} from './worker-broker.js';
 
 const origins=new Set((process.env.ALLOWED_ORIGINS||'http://127.0.0.1:5173,http://localhost:5173,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com').split(','));
 const guard=await startNetworkGuard();
+const broker=createWorkerBroker({token:process.env.CONVERTY_WORKER_TOKEN,maxBytes:MAX_BYTES,timeoutMs:MAX_TIME});
 let active=0;const clients=new Map(),cache=new Map();let globalStarts=[];
 const MAX_CACHE=16*1024*1024;const TTL=300000;
 function fail(message,status=400){return Object.assign(new Error(message),{status});}
@@ -50,6 +52,8 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
  if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Access-Control-Expose-Headers','X-Converty-Filename,X-Converty-Seconds,X-Converty-Mode');}
  let route;try{route=new URL(req.url,'http://localhost');}catch{respond(res,400,'Invalid request.');return;}
  if(route.pathname==='/api/health'&&req.method==='GET'){respond(res,200,'ready');return;}
+ if(route.pathname==='/api/status'&&req.method==='GET'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({youtubeWorkerOnline:broker.isOnline()}));return;}
+ if(await broker.handle(req,res,route))return;
  if(!['/api/link','/api/file'].includes(route.pathname)){respond(res,404,'Not found.');return;}
  if(req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type','Access-Control-Max-Age':'600'});res.end();return;}
  if(req.method!=='POST'){respond(res,405,'Use POST.');return;}
@@ -78,6 +82,8 @@ const server=http.createServer({maxHeaderSize:16384,requestTimeout:MAX_TIME,head
    const input=path.join(dir,'source');const handle=await open(input,'w');let size=0;
    try{for await(const chunk of req){size+=chunk.length;if(size>MAX_BYTES)throw fail('This video exceeds 500 MB.',413);await handle.write(chunk);}}finally{await handle.close();}
    if(!size)throw fail('Choose a video file.');await encode(input,output,quality,enhance,context);
+  }else if(broker.isOnline()&&/(^|\.)(youtube\.com|youtu\.be)$/.test(source.hostname)){
+   const result=await broker.dispatch({url:source.href,quality,enhance,output,signal:abort.signal});metadata.title=result.filename;mode='private-worker';
   }else{
    const streamSource=url=>streamConvert({url,proxy:guard.url,metadataPath:path.join(dir,'stream.info.json'),outputPath:output,quality,enhance,signal:abort.signal});
    try{
