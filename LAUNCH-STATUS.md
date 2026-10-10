@@ -2,6 +2,30 @@
 
 Verified 10 October 2026. Published beta: https://converty-tump3.web.app/
 
+## Current release: four-platform repair
+
+The supported link targets are now only YouTube, Facebook, TikTok and Instagram. All four passed through the published service after the repair. YouTube uses the explicitly approved owner-PC worker; Facebook uses a public watch-URL fallback for the same video ID. No personal login cookies were added.
+
+| Source | Audio length | Server processing | Full API transfer | Parsed bitrate |
+| --- | --- | --- | --- | --- |
+| YouTube, Me at the zoo | 19.03 s | 5.69 s | Browser download completed | 320 kbps |
+| YouTube, Big Buck Bunny | 634.61 s | 26.63 s | 115.26 s, 25.4 MB | 320 kbps |
+| Facebook | 131.06 s | 19.85 s | 30.84 s | 320 kbps |
+| TikTok | 12.70 s | 9.43 s | 11.34 s | 320 kbps |
+| Instagram | 13.54 s | 9.99 s | 10.96 s | 320 kbps |
+
+These are individual warm-service samples, not universal compatibility or typical-speed guarantees. The YouTube browser flow downloaded the correctly named file. See LIVE-WORKER-VERIFICATION.json for URLs, sizes and parsed durations. The second YouTube source and a second public Facebook source supplemented earlier regression cases.
+
+The PC must stay awake, connected and running Start-Worker.ps1 for new YouTube jobs. Stop-Worker.ps1 was tested: it shut down the worker, closed the loopback converter port and changed public status to offline. The worker was then restarted. No public PC port, Windows service or automatic startup was added. The random worker key is DPAPI-encrypted outside the app and privately configured in Render; the temporary plaintext transfer file was removed. Native worker capacity is currently at most 12 starts/hour. See WORKER-SETUP.md for controls and resource costs.
+
+Google live inspection now successfully fetches both the homepage and sitemap.xml. The sitemap fetch explicitly passed at 11:23 PM on 10 October. There are four platform guides and eight-URL XML/text sitemaps. Google sitemap ingestion still needs confirmation, and request indexing reached the daily quota. Indexing and rankings are not verified. Privacy copy discloses operator-managed YouTube processing.
+
+Worker authentication, wrong leases, replay, size bounds and cancellation tests passed. A research startup probe briefly caused service restarts during development; it was removed before the final release. The hosted broker release is commit 9f3c4e8bc9466197adb22dc3bb8090d241c54eb9, deployment dep-db55l8fg0jfs73b66660. Documentation-only releases may follow.
+
+Remaining before broad promotion: Google ingestion/indexing confirmation, complete sole-owner IAM review, a public support contact, representative long-video load testing and sustained availability. The older platform failures below are historical and superseded by the measurements above; Vimeo and Dailymotion are outside the current scope.
+
+## Historical first-release record
+
 ## Ownership and cost
 
 The separate Firebase project is My Concept (`my-concept-riyad`), with Hosting site `converty-tump3`. AaloPro was not used. Source is in the owner's private GitHub repository `riyadhshajib/converty`. The Render GitHub App is restricted to this single repository, as explicitly authorized. Render runs the API on its Free instance in Singapore. Firebase billing is disabled. No paid plan, custom domain purchase, ads or analytics were enabled.
@@ -40,3 +64,7 @@ The site has crawlable HTML, three platform guides, titles/descriptions, canonic
 Unfinished: reliable hosted YouTube/Facebook conversion, hosted Vimeo/Dailymotion success, complete owner-only IAM verification, a chosen public support contact, representative long-video load testing, and Google sitemap ingestion/indexing. The primary YouTube requirement is therefore not complete.
 
 Render Free can sleep after inactivity and add roughly 50 seconds or more to the next request; free resources are limited. The beta is not an always-fast production capacity promise. See GROWTH.md for practical options and next priorities.
+
+## Final deployed verification
+
+Commit `0baae8970df5327991f89a41d1e89b9c3d5f9f45` is live on Render; Firebase Hosting version `7b81f22c12cb3d96` is deployed. After the fast-failure change, the YouTube sample returned its access restriction in 13.68 seconds. Instagram still converted successfully in 11.23 seconds at 320 kbps. A fresh original-file conversion was downloaded through the published browser UI and parsed as a valid 320 kbps MP3. The valid seven-entry sitemap was resubmitted; Search Console ingestion remains unverified. See FINAL-VERIFICATION.json.

@@ -1,0 +1,66 @@
+{
+  "verifiedAt": "2026-10-10T15:37:20.517Z",
+  "results": [
+    {
+      "name": "youtube-second",
+      "url": "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+      "status": 200,
+      "seconds": 115.26,
+      "mode": "private-worker",
+      "serverSeconds": "26.63",
+      "filename": "Big Buck Bunny 60fps 4K - Official Blender Foundation Short Film - converty- tump3.mp3",
+      "bytes": 25385325,
+      "bitrate": 320000,
+      "audioSeconds": 634.608
+    },
+    {
+      "name": "facebook",
+      "url": "https://www.facebook.com/video.php?v=274175099429670",
+      "status": 200,
+      "seconds": 30.84,
+      "mode": "stream",
+      "serverSeconds": "19.85",
+      "filename": "Asif Nawab Butt - converty- tump3.mp3",
+      "bytes": 5243441,
+      "bitrate": 320000,
+      "audioSeconds": 131.05632653061224
+    },
+    {
+      "name": "tiktok",
+      "url": "https://www.tiktok.com/@patroxofficial/video/6742501081818877190",
+      "status": 200,
+      "seconds": 11.34,
+      "mode": "stream",
+      "serverSeconds": "9.43",
+      "filename": "Tag 1 Friend reverse this Video and look what happens @skyandtami - converty- tump3.mp3",
+      "bytes": 509003,
+      "bitrate": 320000,
+      "audioSeconds": 12.695510204081632
+    },
+    {
+      "name": "instagram",
+      "url": "https://www.instagram.com/reel/CDUMkliABpa/",
+      "status": 200,
+      "seconds": 10.96,
+      "mode": "stream",
+      "serverSeconds": "9.99",
+      "filename": "Video by clippedinandfree - converty- tump3.mp3",
+      "bytes": 542549,
+      "bitrate": 320000,
+      "audioSeconds": 13.536
+    }
+  ],
+  "browserYoutube": {
+    "status": "downloaded and parsed",
+    "source": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    "displayedServerSeconds": 5.69,
+    "bitrate": 320000,
+    "audioSeconds": 19.032,
+    "filename": "Me at the zoo - converty- tump3.mp3"
+  },
+  "workerStopTest": {
+    "gracefulExit": true,
+    "nativePortClosed": true,
+    "publicStatusBecameOffline": true
+  }
+}

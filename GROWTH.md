@@ -1,17 +1,17 @@
 # Converty growth and monetization
 
-The goal is steady growth and the ability to earn later. The site is published as a free public beta, with platform limitations disclosed. Reliable hosted YouTube conversion remains the main unmet product requirement. Fixing conversion success is more valuable than bringing visitors to a failing primary flow.
+The goal is steady growth and the ability to earn later. The site is published as a free public beta. YouTube now works through the approved owner-PC worker; Facebook, TikTok and Instagram use the hosted converter. Sample successes do not establish high-traffic or always-on reliability. Measure these before promotion.
 
 ## Search foundation, 10 October 2026
 
-- Home intent: video to MP3 and video to audio. Supporting pages cover YouTube to MP3, Facebook video to MP3 and Instagram video to MP3 with honest source-access and quality guidance.
-- Crawlable HTML, unique titles/descriptions, canonical URLs, robots.txt and a seven-page sitemap are published. About, Privacy and Terms pages are live. Invalid routes return 404.
-- Google Search Console ownership was verified using the owner's Google account and an HTML verification tag. The sitemap was submitted. Search Console currently reports that it could not read the sitemap; a direct external request returns HTTP 200 and valid XML. Successful Google ingestion and indexing remain unverified.
+- Home intent: video to MP3 and video to audio. Supporting pages cover YouTube to MP3, Facebook video to MP3, TikTok to MP3 and Instagram video to MP3 with source-access and quality guidance.
+- Crawlable HTML, unique titles/descriptions, canonical URLs, robots.txt and eight-page XML/text sitemaps are published. About, Privacy and Terms pages are live. Invalid routes return 404.
+- Google Search Console ownership is verified. Google live inspection fetched both the homepage and sitemap successfully on 10 October 2026. The submitted sitemap report still needs ingestion confirmation. Indexing requests reached Google's daily quota; no indexing or rankings are claimed.
 - No search-volume estimates, keyword-difficulty scores or ranking promises are made. Keyword choices match the product's stated search intent; they are not a measured competition study.
 
 ## Priorities
 
-1. Reliability first: uploads are the dependable route for original files. Instagram and TikTok each passed a hosted sample. YouTube and Facebook return access restrictions; Vimeo and Dailymotion also failed the hosted samples. Do not advertise universal platform success.
+1. Reliability first: all four target platforms have passed public-service samples. Keep the YouTube worker online only while the owner accepts the PC resource usage. Track failed sources and completion time without claiming universal success. No other social platforms are current targets.
 2. Review Search Console for sitemap ingestion, indexed pages, impressions, clicks and actual queries. No recurring monitor has been scheduled. Use observed demand to improve useful original guides rather than duplicating keyword pages.
 3. Measure completion, error categories and time without collecting private links or storing user media. Review consent and privacy needs before adding analytics. No analytics or advertising tags are installed today.
 4. Add a public support route and complete account/IAM access review before promoting widely. A support email was not invented or taken from the owner's private login address.
@@ -19,7 +19,7 @@ The goal is steady growth and the ability to earn later. The site is published a
 
 ## Operating choices
 
-- Current free beta: Firebase Hosting plus Render Free. Lowest immediate cost, but cold starts, limited compute and platform restrictions reduce reliability.
+- Current free beta: Firebase Hosting plus Render Free and an owner-PC YouTube worker. No added hosting charge, but PC uptime, Internet data, electricity, free quotas and one-job capacity limit reliability.
 - Upload-focused growth: useful now for recordings and owned files, avoids dependence on social-platform server access and usually preserves the best input quality.
 - Later dedicated capacity: may improve queueing, uptime and processing speed when justified by traffic. Paying for hosting does not guarantee YouTube or Facebook will permit automated access. Do not add authentication cookies, access-control bypasses or paid proxy services as an assumed fix.
 

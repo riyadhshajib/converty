@@ -6,7 +6,7 @@ Native API: https://converty-tump3-api.onrender.com
 
 Firebase project: `my-concept-riyad` (My Concept). Private source: `riyadhshajib/converty`. Render is authorized for this repository only. Both hosting services use free plans; Google Cloud billing is disabled.
 
-The published service has converted real uploads, an Instagram sample and a TikTok sample to 320 kbps MP3. A 500 MiB upload boundary test also passed. Hosted YouTube, Facebook, Vimeo and Dailymotion samples failed; see LAUNCH-STATUS.md. Local success does not establish hosted availability. The UI discloses the YouTube/Facebook limitation.
+The published service has converted real YouTube, Facebook, Instagram and TikTok samples to 320 kbps MP3. These four platforms are the supported link targets. YouTube uses the explicitly approved owner-PC worker; this PC must stay awake, online and running the worker. The other platforms and original-file uploads use the hosted converter. A 500 MiB upload boundary test also passed. See LAUNCH-STATUS.md for measured results and limits, and WORKER-SETUP.md for start/stop controls.
 
 ## Run locally
 
