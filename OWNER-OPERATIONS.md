@@ -1,10 +1,10 @@
 # Converty operations
 
-Owner accounts: Firebase project `my-concept-riyad`, Hosting site `converty-tump3`, private GitHub repository `riyadhshajib/converty`, and the owner's Render workspace. Do not add collaborators or enable billing without owner instruction.
+Owner accounts: Firebase project `my-concept-riyad`, Hosting site `getconverty` (legacy `converty-tump3` redirects permanently), private GitHub repository `riyadhshajib/converty`, and the owner's Render workspace. Do not add collaborators or enable billing without owner instruction.
 
-Live frontend: https://converty-tump3.web.app/ . API: https://converty-tump3-api.onrender.com . Render service: `srv-db54rsks728c73bs0d9g`. The frontend is a static Vite build. Set `VITE_API_URL=https://converty-tump3-api.onrender.com` before `npm run build`; connect-src in firebase.json already matches. Deploy only Hosting with explicit project `my-concept-riyad`. Do not target AaloPro.
+Live frontend: https://getconverty.web.app/ . API: https://converty-tump3-api.onrender.com . Render service: `srv-db54rsks728c73bs0d9g`. The frontend is a static Vite build. Set `VITE_API_URL=https://converty-tump3-api.onrender.com` before `npm run build`; connect-src in firebase.json already matches. Deploy only Hosting with explicit project `my-concept-riyad`. Do not target AaloPro.
 
-Render: Docker runtime, Free instance, one conversion at a time, health endpoint `/api/health`. No database or persistent disk is needed. Use `HOST=0.0.0.0`, `PORT=10000`, and set `ALLOWED_ORIGINS` to the two Converty Firebase hosts. The Docker image runs as a non-root user. Its only copied application files are the conversion service modules.
+Render: Docker runtime, Free instance, one conversion at a time, health endpoint `/api/health`. No database or persistent disk is needed. Use `HOST=0.0.0.0`, `PORT=10000`, and set `ALLOWED_ORIGINS` to `https://getconverty.web.app,https://getconverty.firebaseapp.com,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com`. The Docker image runs as a non-root user. Its only copied application files are the conversion service modules.
 
 The API accepts allowlisted HTTPS platform hosts. A local egress proxy resolves and blocks private, loopback, multicast, reserved and link-local destinations before connecting, including redirects and media requests made through yt-dlp. FFmpeg allows local file/pipe protocols and a restricted set of media demuxers. This reduces SSRF and malicious playlist risk. It is not a guarantee against every vulnerability in third-party codecs or platforms.
 

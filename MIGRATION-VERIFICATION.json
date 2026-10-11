@@ -1,0 +1,69 @@
+{
+  "checked_at_utc": "2026-10-11T05:01:02.226698+00:00",
+  "new_site": "https://getconverty.web.app/",
+  "legacy_site": "https://converty-tump3.web.app/",
+  "firebase_project": "my-concept-riyad",
+  "hosting_deployed": true,
+  "legacy_301_verified": [
+    {
+      "url": "https://converty-tump3.web.app/",
+      "status": 301,
+      "location": "https://getconverty.web.app/",
+      "ok": true
+    },
+    {
+      "url": "https://converty-tump3.web.app/youtube-to-mp3/",
+      "status": 301,
+      "location": "https://getconverty.web.app/youtube-to-mp3",
+      "ok": true
+    },
+    {
+      "url": "https://converty-tump3.web.app/facebook-video-to-mp3/",
+      "status": 301,
+      "location": "https://getconverty.web.app/facebook-video-to-mp3",
+      "ok": true
+    }
+  ],
+  "api_origin": "https://getconverty.web.app",
+  "api_cors_verified": true,
+  "api_deployed_commit": "7d5898248ef7588b042a073beca688155d7af98c",
+  "search_console": {
+    "owner_verified": true,
+    "monitor_permission": "Restricted",
+    "monitor_account": "converty-index-monitor@my-concept-riyad.iam.gserviceaccount.com",
+    "oauth_scope": "webmasters.readonly",
+    "new_credentials_created": false,
+    "change_of_address": "Validation passed and move confirmed on 11 October 2026",
+    "sitemap_submission_utc": "2026-10-11T04:56:32.552Z",
+    "rss_submission_utc": "2026-10-11T04:56:50.219Z",
+    "sitemap_processing": "pending; lastDownloaded null, errors 0",
+    "priority_pages_indexed": false,
+    "priority_page_coverage": "URL is unknown to Google",
+    "manual_requests": "Not retried before 12 October; no independently verified quota reset"
+  },
+  "cloud_run": {
+    "url": "https://github.com/riyadhshajib/converty/actions/runs/38113343652",
+    "status": "Success",
+    "duration_seconds": 34,
+    "checked_at_utc": "2026-10-11T04:59:54.660323+00:00",
+    "public_pages_passed": 8,
+    "google_api_errors": []
+  },
+  "conversion": {
+    "browser_url": "https://getconverty.web.app/",
+    "fixture": "owned generated 3-second MP4",
+    "download": "C:/Users/riyad/Downloads/migration-test - converty- tump3.mp3",
+    "codec": "mp3",
+    "sample_rate": 48000,
+    "bitrate": 320000,
+    "full_decode_exit_code": 0
+  },
+  "automation": "converty-google-indexing-follow-up updated to new URLs; cloud workflow remains every six hours",
+  "gmail_delivery": {
+    "verified": true,
+    "received_local": "2026-10-11 13:00 Asia/Singapore",
+    "report_timestamp_utc": "2026-10-11T04:59:54.660323+00:00",
+    "issue_comment": "https://github.com/riyadhshajib/converty/issues/1#issuecomment-6105644921"
+  },
+  "billing": "No paid plan or billing enabled"
+}
