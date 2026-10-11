@@ -59,6 +59,10 @@ def collect(token):
                        '/sitemaps/'+quote(SITE+'sitemap.xml',safe=''), token)
         report['sitemap'] = {key:data.get(key) for key in
                              ('path','lastSubmitted','lastDownloaded','isPending','errors','warnings')}
+        feed = request('https://www.googleapis.com/webmasters/v3/sites/'+quote(SITE,safe='')+
+                       '/sitemaps/'+quote(SITE+'feed.xml',safe=''), token)
+        report['rss_sitemap'] = {key:feed.get(key) for key in
+                                 ('path','lastSubmitted','lastDownloaded','isPending','errors','warnings')}
     except Exception as error:
         report['errors'].append({'resource':'sitemap', 'error':str(error) if isinstance(error,RuntimeError) else type(error).__name__})
     return report

@@ -68,6 +68,14 @@ def main():
         if not urls or len(urls)>20 or any(not u or not u.startswith(BASE+'/') for u in urls): raise ValueError('Invalid sitemap URLs')
         results['sitemap_status']=status;results['sitemap_urls']=len(urls)
     except Exception as e: results['sitemap_error']=type(e).__name__;problems.append('Sitemap unavailable or invalid');urls=[BASE+'/']
+    try:
+        status,rss,headers=fetch(BASE+'/feed.xml');feed=ET.fromstring(rss)
+        feed_urls=[item.findtext('link') for item in feed.findall('./channel/item')]
+        expected=[BASE+'/',BASE+'/youtube-to-mp3/',BASE+'/facebook-video-to-mp3/']
+        if feed.tag!='rss' or feed.get('version')!='2.0' or feed_urls!=expected: raise ValueError('Invalid priority feed')
+        if 'application/rss+xml' not in headers.get('Content-Type',''): raise ValueError('Incorrect feed content type')
+        results['rss_feed']={'status':status,'urls':feed_urls}
+    except Exception as e: results['rss_feed_error']=type(e).__name__;problems.append('Priority RSS feed unavailable or invalid')
     with ThreadPoolExecutor(max_workers=3) as pool: results['pages']=list(pool.map(page,urls))
     for item in results['pages']:
         if 'error' in item or item.get('status')!=200 or not item.get('canonical_ok') or item.get('indexing_blocked') or item.get('h1_count')!=1:
@@ -97,6 +105,8 @@ def main():
         if google.get('sitemap'):
             sitemap=google['sitemap']
             lines.append('### Google sitemap processing\n'+json.dumps(sitemap,ensure_ascii=False))
+        if google.get('rss_sitemap'):
+            lines.append('### Google RSS sitemap processing\n'+json.dumps(google['rss_sitemap'],ensure_ascii=False))
         for error in google['errors']: lines.append('Google check error: '+json.dumps(error,ensure_ascii=False))
         lines.append('এই API indexing request পাঠায় না বা live fetch পরীক্ষা করে না।')
     report='\n\n'.join(lines)
