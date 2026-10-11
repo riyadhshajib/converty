@@ -9,9 +9,34 @@ BASE = 'https://converty-tump3.web.app'
 MARKER = '<!-- converty-cloud-seo-monitor -->'
 LIMIT = 1024 * 1024
 GOOGLE_STATE = '<!-- converty-google-state '
+SITEMAP_STATE = '<!-- converty-sitemap-state '
 
 def newly_indexed(current, previous):
     return [p['url'] for p in current if p.get('indexed') is True and previous.get(p['url']) is not True]
+
+def sitemap_states(google):
+    states={}
+    for key in ('sitemap','rss_sitemap'):
+        item=google.get(key)
+        if not item or not item.get('path'): continue
+        # Pending + zero errors does not mean Google downloaded/processed the file.
+        try: errors=int(item.get('errors'))
+        except (TypeError,ValueError): errors=None
+        if (errors is not None and errors>0) or item.get('type')=='notSitemap': status='error'
+        elif item.get('isPending') is False and item.get('lastDownloaded') and errors==0: status='processed'
+        else: status='pending_or_unconfirmed'
+        states[item['path']]={'status':status,'last_downloaded':item.get('lastDownloaded'),'errors':errors}
+    return states
+
+def sitemap_alerts(current, previous):
+    alerts=[]
+    for url,state in current.items():
+        old=previous.get(url,{})
+        if state['status']=='processed' and old.get('status')!='processed':
+            alerts.append('Google sitemap processing নিশ্চিত হয়েছে: '+url)
+        elif state['status']=='error' and (old.get('status')!='error' or old.get('errors')!=state['errors']):
+            alerts.append('Google sitemap error পাওয়া গেছে: '+url+'; errors: '+str(state['errors']))
+    return alerts
 
 class Metadata(HTMLParser):
     def __init__(self):
@@ -128,6 +153,16 @@ def main():
             for item in google['pages']: current[item['url']]=item['indexed']
             report+='\n\n'+GOOGLE_STATE+json.dumps(current)+' -->'
             if changed: alert='Google-এ নতুন indexing নিশ্চিত হয়েছে:\n'+'\n'.join('- '+url for url in changed)+'\n\n'
+            old_sitemaps=re.search(r'<!-- converty-sitemap-state (.*?) -->',existing.get('body','') if existing else '')
+            try: previous_sitemaps=json.loads(old_sitemaps.group(1)) if old_sitemaps else {}
+            except (ValueError,TypeError): previous_sitemaps={}
+            if not isinstance(previous_sitemaps,dict): previous_sitemaps={}
+            current_sitemaps=sitemap_states(google)
+            messages=sitemap_alerts(current_sitemaps,previous_sitemaps)
+            # Preserve the last known state when a Google API call fails.
+            saved_sitemaps=dict(previous_sitemaps);saved_sitemaps.update(current_sitemaps)
+            report+='\n\n'+SITEMAP_STATE+json.dumps(saved_sitemaps)+' -->'
+            if messages: alert+='\n\n'.join(messages)+'\n\n'
         if existing and existing['state']=='closed': print('Report issue is closed; no comments added.')
         elif existing:
             github(f"issues/{existing['number']}",'PATCH',{'body':report})

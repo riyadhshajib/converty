@@ -37,6 +37,12 @@ def summarize(url, data):
     return {'url': url, 'indexed': verdict == 'PASS', 'verdict': verdict,
             'coverage_state': state.get('coverageState', 'Unknown'),
             'last_crawl': state.get('lastCrawlTime'),
+            'page_fetch_state': state.get('pageFetchState'),
+            'robots_txt_state': state.get('robotsTxtState'),
+            'indexing_state': state.get('indexingState'),
+            'referring_urls': state.get('referringUrls', []),
+            'referring_sitemaps': state.get('sitemap', []),
+            'user_canonical': state.get('userCanonical'),
             'google_canonical': state.get('googleCanonical'),
             'inspection_link': result.get('inspectionResultLink')}
 
@@ -58,11 +64,11 @@ def collect(token):
         data = request('https://www.googleapis.com/webmasters/v3/sites/'+quote(SITE,safe='')+
                        '/sitemaps/'+quote(SITE+'sitemap.xml',safe=''), token)
         report['sitemap'] = {key:data.get(key) for key in
-                             ('path','lastSubmitted','lastDownloaded','isPending','errors','warnings')}
+                             ('path','lastSubmitted','lastDownloaded','isPending','type','contents','errors','warnings')}
         feed = request('https://www.googleapis.com/webmasters/v3/sites/'+quote(SITE,safe='')+
                        '/sitemaps/'+quote(SITE+'feed.xml',safe=''), token)
         report['rss_sitemap'] = {key:feed.get(key) for key in
-                                 ('path','lastSubmitted','lastDownloaded','isPending','errors','warnings')}
+                                 ('path','lastSubmitted','lastDownloaded','isPending','type','contents','errors','warnings')}
     except Exception as error:
         report['errors'].append({'resource':'sitemap', 'error':str(error) if isinstance(error,RuntimeError) else type(error).__name__})
     return report
