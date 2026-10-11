@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from pathlib import Path
 
-BASE = 'https://converty-tump3.web.app'
+BASE = 'https://getconverty.web.app'
+OLD_BASE = 'https://converty-tump3.web.app'
 MARKER = '<!-- converty-cloud-seo-monitor -->'
 LIMIT = 1024 * 1024
 GOOGLE_STATE = '<!-- converty-google-state '
@@ -67,6 +68,23 @@ def page(url):
         except Exception as error:
             if attempt: return {'url':url,'error':type(error).__name__}
 
+def legacy_redirect(path):
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl): return None
+    url=OLD_BASE+path
+    try:
+        request=urllib.request.Request(url,method='HEAD',headers={'User-Agent':'Converty-Public-SEO-Monitor/1.0'})
+        try:
+            with urllib.request.build_opener(NoRedirect).open(request,timeout=12) as response:
+                status,location=response.status,response.headers.get('Location')
+        except urllib.error.HTTPError as response:
+            status,location=response.code,response.headers.get('Location')
+            response.close()
+        expected=BASE+path
+        return {'url':url,'status':status,'location':location,
+                'ok':status==301 and location in (expected,expected.rstrip('/'))}
+    except Exception as error: return {'url':url,'error':type(error).__name__,'ok':False}
+
 def github(path,method='GET',data=None):
     token=os.environ['GH_TOKEN'];repo=os.environ['GITHUB_REPOSITORY']
     if repo!='riyadhshajib/converty': raise ValueError('Unexpected repository')
@@ -80,6 +98,10 @@ def main():
     results={'checked_at_utc':datetime.now(timezone.utc).isoformat(),'site':BASE,
              'google_index_status':'Not checked: no Search Console access authorized'}
     problems=[]
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        results['legacy_redirects']=list(pool.map(legacy_redirect,['/','/youtube-to-mp3/','/facebook-video-to-mp3/']))
+    for item in results['legacy_redirects']:
+        if not item['ok']: problems.append('Legacy 301 redirect failed: '+item['url'])
     try:
         status,robots,_=fetch(BASE+'/robots.txt');results['robots_status']=status
         results['sitemap_declared']=('Sitemap: '+BASE+'/sitemap.xml') in robots

@@ -14,7 +14,7 @@ import {cloudAudio} from './cloud-audio.js';
 import {createProgressReader,durationFromLog} from './conversion-progress.js';
 import {AUDIO_FORMATS,encoderOptions,qualityLabel} from './audio-formats.js';
 
-const origins=new Set((process.env.ALLOWED_ORIGINS||'http://127.0.0.1:5173,http://localhost:5173,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com').split(','));
+const origins=new Set((process.env.ALLOWED_ORIGINS||'http://127.0.0.1:5173,http://localhost:5173,https://converty-tump3.web.app,https://converty-tump3.firebaseapp.com,https://getconverty.web.app,https://getconverty.firebaseapp.com').split(','));
 const guard=await startNetworkGuard();
 const broker=createWorkerBroker({token:process.env.CONVERTY_WORKER_TOKEN,maxBytes:MAX_BYTES,timeoutMs:MAX_TIME});
 let active=0;const clients=new Map(),cache=new Map();let globalStarts=[];

@@ -11,7 +11,7 @@ from urllib.parse import quote
 from datetime import datetime, timezone
 from pathlib import Path
 
-SITE = 'https://converty-tump3.web.app/'
+SITE = 'https://getconverty.web.app/'
 URLS = [SITE, SITE+'youtube-to-mp3/', SITE+'facebook-video-to-mp3/']
 
 

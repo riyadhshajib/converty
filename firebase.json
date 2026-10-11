@@ -1,48 +1,66 @@
 {
-  "hosting": {
-    "site": "converty-tump3",
-    "public": "dist",
-    "cleanUrls": true,
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          {
-            "key": "X-Content-Type-Options",
-            "value": "nosniff"
-          },
-          {
-            "key": "Referrer-Policy",
-            "value": "strict-origin-when-cross-origin"
-          },
-          {
-            "key": "X-Frame-Options",
-            "value": "DENY"
-          },
-          {
-            "key": "Permissions-Policy",
-            "value": "camera=(), microphone=(), geolocation=()"
-          },
-          {
-            "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://converty-tump3-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
-          }
-        ]
-      },
-      {
-        "source": "/feed.xml",
-        "headers": [
-          {
-            "key": "Content-Type",
-            "value": "application/rss+xml; charset=utf-8"
-          }
-        ]
-      }
-    ]
-  }
+  "hosting": [
+    {
+      "site": "getconverty",
+      "public": "dist",
+      "cleanUrls": true,
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=()"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://converty-tump3-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+            }
+          ]
+        },
+        {
+          "source": "/feed.xml",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/rss+xml; charset=utf-8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "site": "converty-tump3",
+      "public": "redirect-site",
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "https://getconverty.web.app/",
+          "type": 301
+        },
+        {
+          "source": "/:path*",
+          "destination": "https://getconverty.web.app/:path",
+          "type": 301
+        }
+      ]
+    }
+  ]
 }

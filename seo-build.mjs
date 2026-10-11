@@ -1,7 +1,7 @@
 import {headphoneMark} from './logo.js';
 import {renderGuide} from './seo-guides.mjs';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
-const base='https://converty-tump3.web.app';
+const base='https://getconverty.web.app';
 const src=await readFile('src.js','utf8');
 const arrow=src.match(/const arrow = '([^']+)';/)[1];
 const markup=src.split("document.querySelector('#app').innerHTML = `")[1].split('`;')[0].replaceAll('${arrow}',arrow).replaceAll('${headphoneMark("header-headphones")}',headphoneMark('header-headphones')).replaceAll('${headphoneMark("footer-headphones")}',headphoneMark('footer-headphones'));
